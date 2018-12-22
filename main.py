@@ -60,8 +60,6 @@ def main():
         # save model
         if acc > best[0]:
             best = (acc, loss, cost)
-            torch.save(model.state_dict(),"Saved/eenet8.pt")
-
         #test(args, model, device, test_loader)
     print('Best avg loss: {:.4f}, avg cost: {:.4f}, Accuracy:{:.2f}%'.format(best[1], best[2], best[0]))
 
