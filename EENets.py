@@ -5,7 +5,7 @@ import torchvision.models as models
 class EENet(nn.Module):
 	def __init__(self):
 		super(EENet, self).__init__()
-        self.initblock = nn.Sequential(
+		self.initblock = nn.Sequential(
 			nn.Conv2d(1, 4, kernel_size=3, stride=1, padding=1),
 			nn.BatchNorm2d(4),
 			nn.ReLU(inplace=True),
@@ -63,35 +63,35 @@ class EENet(nn.Module):
 		)
 
 	def forward(self, x):
-  		x = self.initblock(x)
-        residual = self.basicblock1(x)
-        x = residual + x
+		x = self.initblock(x)
+		residual = self.basicblock1(x)
+		x = residual + x
 
-        e_x = self.pool(x).view(-1, 4)
-        y0 = self.exit0_classifier(e_x)
-        h0 = self.exit0_confidence(e_x)
+		e_x = self.pool(x).view(-1, 4)
+		y0 = self.exit0_classifier(e_x)
+		h0 = self.exit0_confidence(e_x)
 
-        if (not self.training and torch.mean(h0) > 0.5):
-            return y0, 0, 0.08
+		if (not self.training and torch.mean(h0) > 0.5):
+			return y0, 0, 0.08
 
-        residual = self.basicblock2(x)
-        x = self.conv2d_6(x)
-        x = residual + x
+		residual = self.basicblock2(x)
+		x = self.conv2d_6(x)
+		x = residual + x
 
-        e_x = self.pool(x).view(-1, 8)
-        y1 = self.exit1_classifier(e_x)
-        h1 = self.exit1_confidence(e_x)
-        if (not self.training and torch.mean(h1) > 0.5):
-            return y1, 1, 0.26
+		e_x = self.pool(x).view(-1, 8)
+		y1 = self.exit1_classifier(e_x)
+		h1 = self.exit1_confidence(e_x)
+		if (not self.training and torch.mean(h1) > 0.5):
+			return y1, 1, 0.26
 
-        residual = self.basicblock3(x)
-        x = self.conv2d_9(x)
-        x = residual + x
-        x = self.finalblock(x)
-        x = x.view(-1, 16)
-        y2 = self.classifier(x)
+		residual = self.basicblock3(x)
+		x = self.conv2d_9(x)
+		x = residual + x
+		x = self.finalblock(x)
+		x = x.view(-1, 16)
+		y2 = self.classifier(x)
 
-        if (not self.training):
-            return y2, 2, 1.00
+		if (not self.training):
+			return y2, 2, 1.00
 
-        return (y0, y1, y2), (h0, h1)
+		return (y0, y1, y2), (h0, h1)
