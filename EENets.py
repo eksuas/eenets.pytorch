@@ -3,62 +3,63 @@ import torch.nn as nn
 import torchvision.models as models
 
 class EENet(nn.Module):
-	def __init__(self):
+	def __init__(self, filter):
 		super(EENet, self).__init__()
+		self.filter = filter
 		self.initblock = nn.Sequential(
-			nn.Conv2d(1, 4, kernel_size=3, stride=1, padding=1),
-			nn.BatchNorm2d(4),
+			nn.Conv2d(1, filter, kernel_size=3, stride=1, padding=1),
+			nn.BatchNorm2d(filter),
 			nn.ReLU(inplace=True),
 		)
 		self.basicblock1 = nn.Sequential(
-			nn.Conv2d(4, 4, kernel_size=3, stride=1, padding=1),
-			nn.BatchNorm2d(4),
+			nn.Conv2d(filter, filter, kernel_size=3, stride=1, padding=1),
+			nn.BatchNorm2d(filter),
 			nn.ReLU(inplace=True),
-			nn.Conv2d(4, 4, kernel_size=3, stride=1, padding=1),
+			nn.Conv2d(filter, filter, kernel_size=3, stride=1, padding=1),
 		)
 		self.basicblock2 = nn.Sequential(
-			nn.BatchNorm2d(4),
+			nn.BatchNorm2d(filter),
 			nn.ReLU(inplace=True),
-			nn.Conv2d(4, 8, kernel_size=3, stride=2, padding=1),
-			nn.BatchNorm2d(8),
+			nn.Conv2d(filter, filter*2, kernel_size=3, stride=2, padding=1),
+			nn.BatchNorm2d(filter*2),
 			nn.ReLU(inplace=True),
-			nn.Conv2d(8, 8, kernel_size=3, stride=1, padding=1),
+			nn.Conv2d(filter*2, filter*2, kernel_size=3, stride=1, padding=1),
 		)
 		self.basicblock3 = nn.Sequential(
-			nn.BatchNorm2d(8),
+			nn.BatchNorm2d(filter*2),
 			nn.ReLU(inplace=True),
-			nn.Conv2d(8, 16, kernel_size=3, stride=2, padding=1),
-			nn.BatchNorm2d(16),
+			nn.Conv2d(filter*2, filter*4, kernel_size=3, stride=2, padding=1),
+			nn.BatchNorm2d(filter*4),
 			nn.ReLU(inplace=True),
-			nn.Conv2d(16, 16, kernel_size=3, stride=1, padding=1),
+			nn.Conv2d(filter*4, filter*4, kernel_size=3, stride=1, padding=1),
 		)
 		self.finalblock = nn.Sequential(
-			nn.BatchNorm2d(16),
+			nn.BatchNorm2d(filter*4),
 			nn.ReLU(inplace=True),
 			nn.AdaptiveAvgPool2d(1),
 		)
-		self.conv2d_6 = nn.Conv2d(4, 8, kernel_size=1, stride=2, padding=0)
-		self.conv2d_9 = nn.Conv2d(8, 16, kernel_size=1, stride=2, padding=0)
+		self.conv2d_6 = nn.Conv2d(filter, filter*2, kernel_size=1, stride=2, padding=0)
+		self.conv2d_9 = nn.Conv2d(filter*2, filter*4, kernel_size=1, stride=2, padding=0)
 		self.pool = nn.AdaptiveAvgPool2d(1)
 
 		self.exit0_classifier = nn.Sequential(
-			nn.Linear(4, 10),
+			nn.Linear(filter, 10),
 			nn.Softmax(dim=1),
 		)
 		self.exit1_classifier = nn.Sequential(
-			nn.Linear(8, 10),
+			nn.Linear(filter*2, 10),
 			nn.Softmax(dim=1),
 		)
 		self.exit0_confidence = nn.Sequential(
-			nn.Linear(4, 1),
+			nn.Linear(filter, 1),
 			nn.Sigmoid(),
 		)
 		self.exit1_confidence = nn.Sequential(
-			nn.Linear(8, 1),
+			nn.Linear(filter*2, 1),
 			nn.Sigmoid(),
 		)
 		self.classifier = nn.Sequential(
-			nn.Linear(16, 10),
+			nn.Linear(filter*4, 10),
 			nn.Softmax(dim=1),
 		)
 
@@ -67,7 +68,7 @@ class EENet(nn.Module):
 		residual = self.basicblock1(x)
 		x = residual + x
 
-		e_x = self.pool(x).view(-1, 4)
+		e_x = self.pool(x).view(-1, self.filter)
 		y0 = self.exit0_classifier(e_x)
 		h0 = self.exit0_confidence(e_x)
 
@@ -78,7 +79,7 @@ class EENet(nn.Module):
 		x = self.conv2d_6(x)
 		x = residual + x
 
-		e_x = self.pool(x).view(-1, 8)
+		e_x = self.pool(x).view(-1, self.filter*2)
 		y1 = self.exit1_classifier(e_x)
 		h1 = self.exit1_confidence(e_x)
 		if (not self.training and torch.mean(h1) > 0.5):
@@ -88,7 +89,7 @@ class EENet(nn.Module):
 		x = self.conv2d_9(x)
 		x = residual + x
 		x = self.finalblock(x)
-		x = x.view(-1, 16)
+		x = x.view(-1, self.filter*4)
 		y2 = self.classifier(x)
 
 		if (not self.training):

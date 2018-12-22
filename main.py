@@ -33,6 +33,8 @@ def main():
                         help='how many batches to wait before logging training status')
     parser.add_argument('--save-model', action='store_true', default=False,
                         help='For Saving the current Model')
+    parser.add_argument('--filters', type=int, default=2, metavar='N',
+                        help='initial filter number of the model')
     args = parser.parse_args()
     use_cuda = not args.no_cuda and torch.cuda.is_available()
 
@@ -45,7 +47,7 @@ def main():
     test_loader = torch.utils.data.DataLoader(datasets.MNIST('./data/mnist', train=False, transform=transform),
         batch_size=args.test_batch_size, shuffle=True, **kwargs)
 
-    model = EENet().to(device)
+    model = EENet(args.filters).to(device)
     summary(model, (1, 28, 28))
     optimizer = optim.Adam(model.parameters())
     scheduler = ReduceLROnPlateau(optimizer, 'min')
@@ -53,7 +55,7 @@ def main():
     best = (0,0,0)
     num_ee = 2
     for epoch in range(1, args.epochs + 1):
-        print(epoch, end =": ")
+        print('{:2d}:'.format(epoch), end ="")
         train(args, model, num_ee, device, train_loader, optimizer, epoch)
         acc, loss, cost = validate(args, model, num_ee, device, test_loader)
         scheduler.step(loss)
