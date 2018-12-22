@@ -1,0 +1,58 @@
+python main.py --epochs 5
+----------------------------------------------------------------
+        Layer (type)               Output Shape         Param #
+================================================================
+            Conv2d-1            [-1, 4, 28, 28]              40
+       BatchNorm2d-2            [-1, 4, 28, 28]               8
+              ReLU-3            [-1, 4, 28, 28]               0
+            Conv2d-4            [-1, 4, 28, 28]             148
+       BatchNorm2d-5            [-1, 4, 28, 28]               8
+              ReLU-6            [-1, 4, 28, 28]               0
+            Conv2d-7            [-1, 4, 28, 28]             148
+ AdaptiveAvgPool2d-8              [-1, 4, 1, 1]               0
+            Linear-9                   [-1, 10]              50
+          Softmax-10                   [-1, 10]               0
+           Linear-11                    [-1, 1]               5
+          Sigmoid-12                    [-1, 1]               0
+      BatchNorm2d-13            [-1, 4, 28, 28]               8
+             ReLU-14            [-1, 4, 28, 28]               0
+           Conv2d-15            [-1, 8, 14, 14]             296
+      BatchNorm2d-16            [-1, 8, 14, 14]              16
+             ReLU-17            [-1, 8, 14, 14]               0
+           Conv2d-18            [-1, 8, 14, 14]             584
+           Conv2d-19            [-1, 8, 14, 14]              40
+AdaptiveAvgPool2d-20              [-1, 8, 1, 1]               0
+           Linear-21                   [-1, 10]              90
+          Softmax-22                   [-1, 10]               0
+           Linear-23                    [-1, 1]               9
+          Sigmoid-24                    [-1, 1]               0
+      BatchNorm2d-25            [-1, 8, 14, 14]              16
+             ReLU-26            [-1, 8, 14, 14]               0
+           Conv2d-27             [-1, 16, 7, 7]           1,168
+      BatchNorm2d-28             [-1, 16, 7, 7]              32
+             ReLU-29             [-1, 16, 7, 7]               0
+           Conv2d-30             [-1, 16, 7, 7]           2,320
+           Conv2d-31             [-1, 16, 7, 7]             144
+      BatchNorm2d-32             [-1, 16, 7, 7]              32
+             ReLU-33             [-1, 16, 7, 7]               0
+AdaptiveAvgPool2d-34             [-1, 16, 1, 1]               0
+           Linear-35                   [-1, 10]             170
+          Softmax-36                   [-1, 10]               0
+================================================================
+Total params: 5,332
+Trainable params: 5,332
+Non-trainable params: 0
+----------------------------------------------------------------
+Input size (MB): 0.00
+Forward/backward pass size (MB): 0.34
+Params size (MB): 0.02
+Estimated Total Size (MB): 0.36
+----------------------------------------------------------------
+1: Test set avg time: 0.7130msec Avg loss: 1.2616, Avg cost: 0.9998, Exits: <0,3,9997>, Accuracy:92.47%
+the best Accuracy
+2: Test set avg time: 0.6690msec Avg loss: 1.0652, Avg cost: 0.8216, Exits: <1,2410,7589>, Accuracy:92.56%
+the best Accuracy
+3: Test set avg time: 0.6654msec Avg loss: 1.0702, Avg cost: 0.7955, Exits: <18,2741,7241>, Accuracy:91.79%
+4: Test set avg time: 0.6499msec Avg loss: 1.1136, Avg cost: 0.7606, Exits: <21,3209,6770>, Accuracy:90.22%
+5: Test set avg time: 0.6828msec Avg loss: 1.0051, Avg cost: 0.8371, Exits: <40,2151,7809>, Accuracy:94.82%
+the best Accuracy
