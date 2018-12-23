@@ -1,6 +1,8 @@
 # EENets_pytorch
 This repository contains Pytroch implementation of EENets: Early Exit Convolutional Neural Network. ([the details and keras implementation](https://github.com/eksuas/EENet) and [the slides](https://docs.google.com/presentation/d/1c-C3MewSl3aXxxits3Vm7k2z5h2RVUp5U2ypb9Xq9Q0/edit?usp=sharing))
 
+Note that the codes includes only ResNet8 models with different initial filter sizes for now !
+
 ## Getting Started
 
 The codes are developed with python35 environment on Windows 10. The development environment consists of 
@@ -51,10 +53,8 @@ optional arguments:
 
 Example training command:
 ```
-$ python main.py --dataset svhn --arch eenet18 --epoch 200 --save_name svhn_eenet18
+$ python main.py --filters 2 --epochs 30
 ```
-The weights, architecture and logs of the trained model are saved under the folder "snapshots/<save_name>" and can be loaded later.
-Trained models are automaticaly tested after training process. The test results are also saved under the same folder.
 
 ### Testing
 
@@ -68,9 +68,9 @@ The accuracy and cost metrics of testing are prompt to the command line.
 
 ## The Code Contents
 
-ResNet based EENet model classes are implemented in the "nn.py" file. 
-The "main.py" creates and initializes a model by calling nn methods.
-The "callback.py" and "figures.py" are helping codes for training custom callback functions and drawing figures and charts, respectively.
+ResNet based EENet model classes are implemented in the "EENets.py" file. 
+The "main.py" creates and initializes a model by calling EENet methods. Training and testing details are also written in this file.
+The "utils.py" and "flops_counter.py" are helping codes for AverageMeter and counting the number of floating point operations, respectively. "flops_counter.py" are taken from [this repo](https://github.com/sovrasov/flops-counter.pytorch).
 
 ## Authors
 
@@ -78,8 +78,3 @@ The "callback.py" and "figures.py" are helping codes for training custom callbac
 
 See also the list of [contributors](https://github.com/your/project/contributors) who participated in this project.
 
-## Acknowledgments
-
-* Hat tip to anyone whose code was used
-* Inspiration
-* etc
