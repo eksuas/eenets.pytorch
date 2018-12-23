@@ -56,16 +56,6 @@ Example training command:
 $ python main.py --filters 2 --epochs 30
 ```
 
-### Testing
-
-A trained model can be loaded and tested later. Example command:
-```
-$ python main.py --filters 2 --epochs 30
-```
-The test or prediction results are saved in the file "<load_model>/prediction.txt".
-In this file, it can be seen that which example are classified at which layer and whether it is classified correctly or not.
-The accuracy and cost metrics of testing are prompt to the command line.
-
 ## The Code Contents
 
 ResNet based EENet model classes are implemented in the "EENets.py" file. 
