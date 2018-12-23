@@ -79,7 +79,7 @@ def train(args, model, num_ee, device, train_loader, optimizer, epoch):
         for i in range(num_ee-1,-1,-1):
             Y[i] = h[i] * y[i] + (1-h[i]) * Y[i+1]
             C[i] = h[i] * c[i] + (1-h[i]) * C[i+1]
-            loss += F.nll_loss(torch.log(Y[i]), target) + torch.mean(C[i])
+            loss += 2 * (F.nll_loss(torch.log(Y[i]), target) + torch.mean(C[i]))
         #loss = criterion(Y[0], target) + torch.mean(C[0])
         loss.backward()
         optimizer.step()
@@ -93,20 +93,17 @@ def validate(args, model, num_ee, device, val_loader):
     exit_points = [0]*(num_ee+1)
     # switch to evaluate mode
     model.eval()
-    end = time.time()
-
     with torch.no_grad():
         for data, target in val_loader:
             data, target = data.to(device), target.to(device)
             # compute output
+            start = time.time()
             output, id, cost = model(data)
+            btime.update(time.time() - start)
             exit_points[id] += 1
             bloss.update(F.nll_loss(torch.log(output), target) + cost)
             pred = output.max(1, keepdim=True)[1] # get the index of the max log-probability
             bacc.update(pred.eq(target.view_as(pred)).sum().item())
-            # measure elapsed time
-            btime.update(time.time() - end)
-            end = time.time()
             bcost.update(cost)
 
     print('Test set avg time: {:.4f}msec Avg loss: {:.4f}, Avg cost: {:.4f}, Exits: <{:d},{:d},{:d}>, Accuracy:{:.2f}%'.format(
