@@ -29,26 +29,24 @@ Similarly, ResNet based EENet models do not support MNIST dataset.
 The main.py includes command line arguments, to see all of them:
 ```
 $ python main.py --help
+usage: main.py [-h] [--batch-size N] [--test-batch-size N] [--epochs N]
+               [--lr LR] [--momentum M] [--no-cuda] [--seed S]
+               [--log-interval N] [--save-model] [--filters N]
 
-
+PyTorch MNIST Example
 
 optional arguments:
-  -h, --help                                  show this help message and exit
-  --dataset {svhn,cifar10,cifar100,mnist}     choose a dataset from the list. (default: mnist)
-  --arch ARCH                                 model architecture. (default: resnet18)
-  --epoch EPOCH                               number of epoch to train. (default: 1)
-  --batch_size BATCH_SIZE                     batch size. (default: 32)
-  --loss {single,combined}                    loss function (default: combined)
-  --optimizer {adam,sgd}                      optimizer function. (default: adam)
-  --data_aug DATA_AUG                         if data augmentation is performed. (default: False)
-  --save_name SAVE_NAME                       model name to save arch, parameters, results etc. (default: )
-  --load_model LOAD_MODEL                     file to load model. (default: None)
-  --verbose {0,1,2}                           verbosity: 0(silent), 1(prog-bar), or 2(one-line). (default: 1)
-  --c C                                       penalty for not exiting of a layer. (default: 0.5)
-  --T T                                       threshold of laters' exit gate. (default: 0.5)
-  --exit_block {plain,pool,bnpool}            exit block type. (default: plain)
-  --figures FIGURES                           if train accuracy and cost figures, charts are created. (default: False)
-  --print_summary PRINT_SUMMARY               print the summary of architexture. (default: False)
+  -h, --help           show this help message and exit
+  --batch-size N       input batch size for training (default: 32)
+  --test-batch-size N  input batch size for testing (default: 1)
+  --epochs N           number of epochs to train (default: 10)
+  --lr LR              learning rate (default: 0.01)
+  --momentum M         SGD momentum (default: 0.5)
+  --no-cuda            disables CUDA training
+  --seed S             random seed (default: 1)
+  --log-interval N     how many batches to wait before logging training status
+  --save-model         For Saving the current Model
+  --filters N          initial filter number of the model
 ```
 
 Example training command:
@@ -62,7 +60,7 @@ Trained models are automaticaly tested after training process. The test results 
 
 A trained model can be loaded and tested later. Example command:
 ```
-$ python main.py --dataset svhn --load_model snapshots/svhn_eenet18/c0.5_T0.5
+$ python main.py --filters 2 --epochs 30
 ```
 The test or prediction results are saved in the file "<load_model>/prediction.txt".
 In this file, it can be seen that which example are classified at which layer and whether it is classified correctly or not.
