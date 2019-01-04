@@ -1,0 +1,71 @@
+(C:\Users\User\Anaconda3\envs\py35) C:\Users\User>python C:\Users\User\Documents\CENGs\Thesis\edanur\BadaNet\EENets\main.py --epochs 20 --filters 4 --lamb 1.1
+----------------------------------------------------------------
+        Layer (type)               Output Shape         Param #
+================================================================
+            Conv2d-1            [-1, 4, 28, 28]              40
+       BatchNorm2d-2            [-1, 4, 28, 28]               8
+              ReLU-3            [-1, 4, 28, 28]               0
+            Conv2d-4            [-1, 4, 28, 28]             148
+       BatchNorm2d-5            [-1, 4, 28, 28]               8
+              ReLU-6            [-1, 4, 28, 28]               0
+            Conv2d-7            [-1, 4, 28, 28]             148
+ AdaptiveAvgPool2d-8              [-1, 4, 1, 1]               0
+            Linear-9                   [-1, 10]              50
+          Softmax-10                   [-1, 10]               0
+           Linear-11                    [-1, 1]               5
+          Sigmoid-12                    [-1, 1]               0
+      BatchNorm2d-13            [-1, 4, 28, 28]               8
+             ReLU-14            [-1, 4, 28, 28]               0
+           Conv2d-15            [-1, 8, 14, 14]             296
+      BatchNorm2d-16            [-1, 8, 14, 14]              16
+             ReLU-17            [-1, 8, 14, 14]               0
+           Conv2d-18            [-1, 8, 14, 14]             584
+           Conv2d-19            [-1, 8, 14, 14]              40
+AdaptiveAvgPool2d-20              [-1, 8, 1, 1]               0
+           Linear-21                   [-1, 10]              90
+          Softmax-22                   [-1, 10]               0
+           Linear-23                    [-1, 1]               9
+          Sigmoid-24                    [-1, 1]               0
+      BatchNorm2d-25            [-1, 8, 14, 14]              16
+             ReLU-26            [-1, 8, 14, 14]               0
+           Conv2d-27             [-1, 16, 7, 7]           1,168
+      BatchNorm2d-28             [-1, 16, 7, 7]              32
+             ReLU-29             [-1, 16, 7, 7]               0
+           Conv2d-30             [-1, 16, 7, 7]           2,320
+           Conv2d-31             [-1, 16, 7, 7]             144
+      BatchNorm2d-32             [-1, 16, 7, 7]              32
+             ReLU-33             [-1, 16, 7, 7]               0
+AdaptiveAvgPool2d-34             [-1, 16, 1, 1]               0
+           Linear-35                   [-1, 10]             170
+          Softmax-36                   [-1, 10]               0
+================================================================
+Total params: 5,332
+Trainable params: 5,332
+Non-trainable params: 0
+----------------------------------------------------------------
+Input size (MB): 0.00
+Forward/backward pass size (MB): 0.34
+Params size (MB): 0.02
+Estimated Total Size (MB): 0.36
+----------------------------------------------------------------
+ 1:Test set avg time: 0.6072msec Avg loss: 1.2707, Avg cost: 0.8603, Exits: <445,1335,8220>, Accuracy:90.42%
+ 2:Test set avg time: 0.6234msec Avg loss: 1.2360, Avg cost: 0.8748, Exits: <299,1320,8381>, Accuracy:91.46%
+ 3:Test set avg time: 0.6195msec Avg loss: 1.1464, Avg cost: 0.8902, Exits: <136,1315,8549>, Accuracy:95.12%
+ 4:Test set avg time: 0.6291msec Avg loss: 1.1328, Avg cost: 0.8720, Exits: <54,1663,8283>, Accuracy:95.58%
+ 5:Test set avg time: 0.5981msec Avg loss: 1.5649, Avg cost: 0.7922, Exits: <41,2757,7202>, Accuracy:88.52%
+ 6:Test set avg time: 0.6219msec Avg loss: 1.0880, Avg cost: 0.8627, Exits: <29,1820,8151>, Accuracy:96.70%
+ 7:Test set avg time: 0.6150msec Avg loss: 1.0775, Avg cost: 0.8620, Exits: <22,1837,8141>, Accuracy:96.98%
+ 8:Test set avg time: 0.6105msec Avg loss: 1.5418, Avg cost: 0.8061, Exits: <16,2601,7383>, Accuracy:91.85%
+ 9:Test set avg time: 0.6364msec Avg loss: 1.0548, Avg cost: 0.8596, Exits: <16,1877,8107>, Accuracy:97.27%
+10:Test set avg time: 0.6094msec Avg loss: 1.0371, Avg cost: 0.8584, Exits: <8,1903,8089>, Accuracy:97.92%
+11:Test set avg time: 0.6164msec Avg loss: 1.0571, Avg cost: 0.8490, Exits: <7,2032,7961>, Accuracy:97.37%
+12:Test set avg time: 0.6330msec Avg loss: 1.1004, Avg cost: 0.8413, Exits: <13,2129,7858>, Accuracy:97.16%
+13:Test set avg time: 0.6267msec Avg loss: 1.0455, Avg cost: 0.8485, Exits: <12,2033,7955>, Accuracy:97.56%
+14:Test set avg time: 0.6308msec Avg loss: 1.0567, Avg cost: 0.8462, Exits: <12,2064,7924>, Accuracy:97.50%
+15:Test set avg time: 0.6167msec Avg loss: 1.0299, Avg cost: 0.8523, Exits: <24,1966,8010>, Accuracy:97.56%
+16:Test set avg time: 0.6378msec Avg loss: 1.0161, Avg cost: 0.8654, Exits: <5,1813,8182>, Accuracy:98.03%
+17:Test set avg time: 0.6128msec Avg loss: 1.0701, Avg cost: 0.8424, Exits: <1,2129,7870>, Accuracy:97.44%
+18:Test set avg time: 0.6364msec Avg loss: 1.0191, Avg cost: 0.8490, Exits: <4,2035,7961>, Accuracy:98.01%
+19:Test set avg time: 0.6227msec Avg loss: 1.0105, Avg cost: 0.8519, Exits: <8,1992,8000>, Accuracy:98.24%
+20:Test set avg time: 0.6419msec Avg loss: 1.0027, Avg cost: 0.8562, Exits: <3,1939,8058>, Accuracy:98.34%
+Best avg loss: 1.0027, avg cost: 0.8562, Accuracy:98.34%
