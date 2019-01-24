@@ -10,6 +10,7 @@ import numpy as np
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torchvision import datasets, transforms
 from torchsummary import summary
+from matplotlib.ticker import MaxNLocator
 from utils import AverageMeter
 from EENets import EENet
 from flops_counter import add_flops_counting_methods, flops_to_string, get_model_parameters_number
@@ -23,8 +24,8 @@ def main():
                         help='input batch size for testing (default: 1)')
     parser.add_argument('--epochs', type=int, default=10, metavar='N',
                         help='number of epochs to train (default: 10)')
-    parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
-                        help='learning rate (default: 0.01)')
+    parser.add_argument('--lr', type=float, default=0.001, metavar='LR',
+                        help='learning rate (default: 0.001)')
     parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
                         help='SGD momentum (default: 0.5)')
     parser.add_argument('--no-cuda', action='store_true', default=False,
@@ -41,6 +42,8 @@ def main():
                         help='lambda to arrange the balance between accuracy and cost')
     parser.add_argument('--num_ee', type=int, default=2,
                         help='the number of early exit blocks')
+    parser.add_argument('--filename', type=str, default='modelChart',
+                        help='the filename of plots')
     args = parser.parse_args()
     use_cuda = not args.no_cuda and torch.cuda.is_available()
 
@@ -57,21 +60,24 @@ def main():
 
     model = EENet(args.filters).to(device)
     #summary(model, (1, 28, 28))
-    optimizer = optim.Adam(model.parameters())
+    optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    #optimizer = optim.SGD(model.parameters(), lr=args.lr)
     scheduler = ReduceLROnPlateau(optimizer, 'min')
-    #optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
-    best = (0,0,0)
 
+    best = {'acc':0}
+    history = {'acc':[], 'loss':[], 'cost':[]}
     for epoch in range(1, args.epochs + 1):
         print('{:2d}:'.format(epoch), end ="")
         train(args, model, device, train_loader, optimizer, epoch)
-        acc, loss, cost = validate(args, model, device, test_loader)
-        scheduler.step(loss)
+        result = validate(args, model, device, test_loader)
+        for key, value in result.items():
+            history[key].append(value)
+        scheduler.step(result['loss'])
         # save model
-        if acc > best[0]:
-            best = (acc, loss, cost)
-    print('Best avg loss: {:.4f}, avg cost: {:.4f}, Accuracy:{:.2f}%'.format(best[1], best[2], best[0]*100.))
-
+        if result['acc'] > best['acc']:
+            best = result
+    print('The best avg loss: {:.4f}, avg cost:{:.4f}, avg acc:{:.2f}%'.format(best['loss'], best['cost']*100., best['acc']*100.))
+    plotCharts(history, args)
     display(args, model, device, trainset)
 
 def train(args, model, device, train_loader, optimizer, epoch):
@@ -80,7 +86,7 @@ def train(args, model, device, train_loader, optimizer, epoch):
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
         y, h = model(data)
-        c = (torch.tensor(0.08), torch.tensor(0.26), torch.tensor(1.00))
+        c = (torch.tensor(0.08).to(device), torch.tensor(0.26).to(device), torch.tensor(1.00).to(device))
         Y = [0]*(args.num_ee) + [y[args.num_ee]]
         C = [0]*(args.num_ee) + [c[args.num_ee]]
 
@@ -89,7 +95,8 @@ def train(args, model, device, train_loader, optimizer, epoch):
             Y[i] = h[i] * y[i] + (1-h[i]) * Y[i+1]
             C[i] = h[i] * c[i] + (1-h[i]) * C[i+1]
             loss += F.nll_loss(torch.log(Y[i]), target) + args.lamb * torch.mean(C[i])
-        #loss = criterion(Y[0], target) + torch.mean(C[0])
+
+        #loss = F.nll_loss(torch.log(Y[0]), target) + args.lamb * torch.mean(C[0])
         loss.backward()
         optimizer.step()
 
@@ -115,14 +122,13 @@ def validate(args, model, device, val_loader):
             bacc.update(pred.eq(target.view_as(pred)).sum().item())
             bcost.update(cost)
 
-    print('Test set avg time: {:.4f}msec Avg loss: {:.4f}, Avg cost: {:.4f}, Exits: <{:d},{:d},{:d}>, Accuracy:{:.2f}%'.format(
-        btime.avg*100., bloss.avg, bcost.avg, exit_points[0], exit_points[1], exit_points[2], bacc.avg*100.))
-    return bacc.avg, bloss.avg, bcost.avg
+    print('Test set avg time: {:.4f}msec; avg loss: {:.4f}; avg cost: {:.4f}; exits: <{:d},{:d},{:d}>; avg acc:{:.2f}%'.format(
+        btime.avg*100., bloss.avg, bcost.avg*100., exit_points[0], exit_points[1], exit_points[2], bacc.avg*100.))
+    return {'acc':bacc.avg, 'loss':bloss.avg, 'cost':bcost.avg}
 
 def display(args, model, device, dataset):
     images = [[[] for j in range(10)] for i in range(args.num_ee+1)]
     model.eval()
-    completed = 0
     with torch.no_grad():
         for idx, (data, target) in enumerate(dataset):
             data = data.view(-1, 1, 28, 28)
@@ -132,20 +138,30 @@ def display(args, model, device, dataset):
             if pred == target:
                 if len(images[exit][target]) < 10:
                     images[exit][target].append(idx)
-                    if len(images[exit][target]) == 10:
-                        completed += 1
-            if completed == (args.num_ee+1)*100:
-                break
-
 
         for exit in range(args.num_ee+1):
-            plt.close('all')
-            f, axarr = plt.subplots(10, 10)
+            fig, axarr = plt.subplots(10, 10)
             for class_id in range(10):
+                for example in range(10):
+                    axarr[class_id, example].axis('off')
                 for example in range(len(images[exit][class_id])):
                     axarr[class_id, example].imshow(dataset[images[exit][class_id][example]][0].view(28, 28))
-            #plt.show()
-            plt.savefig("Results/exitblock"+str(exit)+".png")
+            fig.savefig("Results/exitblock"+str(exit)+".png")
+
+def plotCharts (history, args):
+    fig, axs = plt.subplots(1,1)
+    plt.title('The EENet-8 model trained with the '+args.filename+' loss')
+    legend = []
+    for key, value in history.items():
+        plt.plot(value)
+        legend.append(key)
+    plt.ylabel('percent')
+    plt.xlabel('epochs')
+    plt.legend(legend, loc='best')
+    #plt.xticks([i for i in range(args.epochs)], [str(i+1) for i in range(args.epochs)])
+    axs.xaxis.set_major_locator(MaxNLocator(integer=True))
+    fig.savefig('Results/'+args.filename+'.png')
+    plt.clf()
 
 if __name__ == '__main__':
     main()
