@@ -72,7 +72,7 @@ class EENet(nn.Module):
 		y0 = self.exit0_classifier(e_x)
 		h0 = self.exit0_confidence(e_x)
 
-		if (not self.training and torch.mean(h0) > 0.5):
+		if (not self.training and h0.item() > 0.5):
 			return y0, 0, 0.08
 
 		residual = self.basicblock2(x)
@@ -82,7 +82,7 @@ class EENet(nn.Module):
 		e_x = self.pool(x).view(-1, self.filter*2)
 		y1 = self.exit1_classifier(e_x)
 		h1 = self.exit1_confidence(e_x)
-		if (not self.training and torch.mean(h1) > 0.5):
+		if (not self.training and h1.item() > 0.5):
 			return y1, 1, 0.26
 
 		residual = self.basicblock3(x)
