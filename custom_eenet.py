@@ -1,10 +1,11 @@
 import torch
 import torch.nn as nn
-import torchvision.models as models
 
-class EENet(nn.Module):
+__all__ = ['CustomEENet', 'eenet8']
+
+class CustomEENet(nn.Module):
 	def __init__(self, filter):
-		super(EENet, self).__init__()
+		super(CustomEENet, self).__init__()
 		self.filter = filter
 		self.initblock = nn.Sequential(
 			nn.Conv2d(1, filter, kernel_size=3, stride=1, padding=1),
@@ -62,6 +63,7 @@ class EENet(nn.Module):
 			nn.Linear(filter*4, 10),
 			nn.Softmax(dim=1),
 		)
+		self.cost = [0.60, 0.97]
 
 	def forward(self, x):
 		x = self.initblock(x)
@@ -71,9 +73,8 @@ class EENet(nn.Module):
 		e_x = self.pool(x).view(-1, self.filter)
 		y0 = self.exit0_classifier(e_x)
 		h0 = self.exit0_confidence(e_x)
-
 		if (not self.training and h0.item() > 0.5):
-			return y0, 0, 0.08
+			return y0, 0, self.cost[0]
 
 		residual = self.basicblock2(x)
 		x = self.conv2d_6(x)
@@ -83,7 +84,7 @@ class EENet(nn.Module):
 		y1 = self.exit1_classifier(e_x)
 		h1 = self.exit1_confidence(e_x)
 		if (not self.training and h1.item() > 0.5):
-			return y1, 1, 0.26
+			return y1, 1, self.cost[1]
 
 		residual = self.basicblock3(x)
 		x = self.conv2d_9(x)
@@ -91,8 +92,12 @@ class EENet(nn.Module):
 		x = self.finalblock(x)
 		x = x.view(-1, self.filter*4)
 		y2 = self.classifier(x)
-
 		if (not self.training):
-			return y2, 2, 1.00
+			return y2, 2, 1.0
 
-		return (y0, y1, y2), (h0, h1)
+		return (y0, y1, y2), (h0, h1), self.cost
+
+
+def eenet8(filters=2, **kwargs):
+    model = CustomEENet(filters)
+    return model
