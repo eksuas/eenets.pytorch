@@ -1,7 +1,5 @@
-# EENets_pytorch
-This repository contains Pytroch implementation of EENets: Early Exit Convolutional Neural Network. ([the details and keras implementation](https://github.com/eksuas/EENet) and [the slides](https://docs.google.com/presentation/d/1Qy9RqXzVl_dmOIB4s9ROoizK0_p4hyi2BTuqwVRdAiM/edit?usp=sharing))
-
-Note that the codes includes only ResNet8 models with different initial filter sizes for now !
+# EENets_PyTorch
+This repository contains PyTorch implementation of EENets: Early Exit Convolutional Neural Network. ([paper](https://drive.google.com/file/d/1tnLPd2Jiqm3WdVYKYAMv6dF_XpjS9vfu/view) and [the slides](https://drive.google.com/open?id=1IJKm0XygD2yPA1jCSgNdAhApGWM76lFf))
 
 ## Getting Started
 
