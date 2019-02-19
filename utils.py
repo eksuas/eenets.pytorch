@@ -24,21 +24,21 @@ def load_dataset(args, use_cuda):
 
     if (args.dataset == 'mnist'):
         transform=transforms.Compose([transforms.ToTensor(),transforms.Normalize((0.1307,), (0.3081,))])
-        trainset = datasets.MNIST('./data/mnist', train=True, download=True, transform=transform)
-        testset  = datasets.MNIST('./data/mnist', train=False, download=True, transform=transform)
+        trainset = datasets.MNIST('../data/mnist', train=True, download=True, transform=transform)
+        testset  = datasets.MNIST('../data/mnist', train=False, download=True, transform=transform)
 
     elif (args.dataset == 'cifar10'):
         transform=transforms.Compose([transforms.ToTensor(),transforms.Normalize((0.5, 0.5, 0.5,), (0.5, 0.5, 0.5))])
-        trainset = datasets.CIFAR10('./data/cifar10', train=True, download=True, transform=transform)
-        testset  = datasets.CIFAR10('./data/cifar10', train=False, download=True, transform=transform)
+        trainset = datasets.CIFAR10('../data/cifar10', train=True, download=True, transform=transform)
+        testset  = datasets.CIFAR10('../data/cifar10', train=False, download=True, transform=transform)
 
     elif (args.dataset == 'svhn'):
-        trainset = datasets.SVHN('./data/svhn', train=True, download=True, transform=transform)
-        testset  = datasets.SVHN('./data/svhn', train=False, download=True, transform=transform)
+        trainset = datasets.SVHN('../data/svhn', train=True, download=True, transform=transform)
+        testset  = datasets.SVHN('../data/svhn', train=False, download=True, transform=transform)
 
     elif (args.dataset == 'imagenet'):
-        trainset = datasets.ImageFolder('./data/imagenet', train=True, download=True, transform=transform)
-        testset  = datasets.ImageFolder('./data/imagenet', train=False, download=True, transform=transform)
+        trainset = datasets.ImageFolder('../data/imagenet', train=True, download=True, transform=transform)
+        testset  = datasets.ImageFolder('../data/imagenet', train=False, download=True, transform=transform)
 
     train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
     test_loader  = torch.utils.data.DataLoader(testset, batch_size=args.test_batch, shuffle=False, **kwargs)
