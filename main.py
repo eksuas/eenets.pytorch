@@ -19,34 +19,42 @@ def main():
     device = torch.device("cuda" if use_cuda else "cpu")
     train_loader, test_loader = load_dataset(args, use_cuda)
 
-    kwargs = vars(args)
-    model = Model(**kwargs).to(device)
 
-    # exit distribution of EENet based models
-    if isinstance(model, EENet):
-        for flops, params in  model.complexity:
-            print('flops={}, params={}, rate={:.2f}'.format(flops_to_string(flops),
-                                                     params_to_string(params),
-                                                     flops/model.complexity[-1][0]))
+    if args.load_model is not '':
+        model = torch.load(args.load_model).to(device)
+        
+    else:
+        kwargs = vars(args)
+        model = Model(**kwargs).to(device)
 
-    #summary(model, (1, 28, 28))
-    optimizer = Optimizer(model.parameters(), **optimizer_kwargs)
-    scheduler = ReduceLROnPlateau(optimizer)
+        # exit distribution of EENet based models
+        if isinstance(model, EENet):
+            for flops, params in  model.complexity:
+                print('flops={}, params={}, rate={:.2f}'.format(flops_to_string(flops),
+                                                         params_to_string(params),
+                                                         flops/model.complexity[-1][0]))
+        #summary(model, (1, 28, 28))
+        optimizer = Optimizer(model.parameters(), **optimizer_kwargs)
+        scheduler = ReduceLROnPlateau(optimizer)
 
-    best = {'acc':0}
-    history = {'acc':[], 'loss':[], 'cost':[]}
-    for epoch in range(1, args.epochs + 1):
-        print('{:2d}:'.format(epoch), end ="")
-        train(args, model, device, train_loader, optimizer, epoch)
-        result = validate(args, model, device, test_loader)
-        for key, value in result.items():
-            history[key].append(value)
-        scheduler.step(result['loss'])
-        # save model
-        if result['acc'] > best['acc']:
-            best = result
+        best = {'acc':0}
+        history = {'acc':[], 'loss':[], 'cost':[]}
+        for epoch in range(1, args.epochs + 1):
+            print('{:2d}:'.format(epoch), end ="")
+            train(args, model, device, train_loader, optimizer, epoch)
+            result = validate(args, model, device, test_loader)
+            for key, value in result.items():
+                history[key].append(value)
+            scheduler.step(result['loss'])
+            # save model
+            if result['acc'] > best['acc']:
+                best = result
 
-    print('The best avg loss: {:.4f}, avg cost:{:.4f}, avg acc:{:.2f}%'.format(best['loss'], best['cost']*100., best['acc']*100.))
+        print('The best avg loss: {:.4f}, avg cost:{:.4f}, avg acc:{:.2f}%'.format(best['loss'], best['cost']*100., best['acc']*100.))
+
+        if args.save_model:
+            save_model(args, model)
+
     #plotCharts(history, args)
     #display_examples(args, model, device, trainset)
 

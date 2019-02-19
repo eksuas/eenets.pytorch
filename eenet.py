@@ -140,25 +140,25 @@ class EENet(nn.Module):
         self.exits = nn.ModuleList()
         self.cost = []
         self.complexity = []
+        layers = nn.ModuleList()
+        stage_id = 0
 
         if is_6n2model:
-            self.stages.append(nn.Sequential(
+            layers.append(nn.Sequential(
                 nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1, bias=False),
                 nn.BatchNorm2d(16),
                 nn.ReLU(inplace=True),
             ))
         else:
-            self.stages.append(nn.Sequential(
+            layers.append(nn.Sequential(
                 nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False),
                 nn.BatchNorm2d(64),
                 nn.ReLU(inplace=True),
                 nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
             ))
 
-        stage_id = 1
         planes = self.inplanes
         stride = 1
-        layers = nn.ModuleList()
         for i in range(len(layer_conf)):
             downsample = None
             if stride != 1 or self.inplanes != planes * block.expansion:
@@ -173,7 +173,7 @@ class EENet(nn.Module):
             part = nn.Sequential(*(list(self.stages)+list(layers)))
             flops, params = get_model_complexity_info(part,
                     (32, 32), print_per_layer_stat=False, as_strings=False)
-            if (stage_id-1 < num_ee and flops >= threshold[stage_id-1]):
+            if (stage_id < num_ee and flops >= threshold[stage_id]):
                 self.stages.append(nn.Sequential(*layers))
                 self.exits.append(ExitBlock(self.inplanes, num_classes))
                 self.cost.append(flops / total_flops)
@@ -188,7 +188,7 @@ class EENet(nn.Module):
                 part = nn.Sequential(*(list(self.stages)+list(layers)))
                 flops, params = get_model_complexity_info(part,
                         (32, 32), print_per_layer_stat=False, as_strings=False)
-                if (stage_id-1 < num_ee and flops >= threshold[stage_id-1]):
+                if (stage_id < num_ee and flops >= threshold[stage_id]):
                     self.stages.append(nn.Sequential(*layers))
                     self.exits.append(ExitBlock(planes, num_classes))
                     self.cost.append(flops / total_flops)
@@ -231,27 +231,22 @@ class EENet(nn.Module):
                     nn.init.constant_(m.bn2.weight, 0)
 
     def forward(self, x):
-        stages_id = 0
         pred, conf = [], []
 
-        x = self.stages[stages_id](x)
-        stages_id += 1
-
         for id, exitblock in enumerate(self.exits):
-            x = self.stages[stages_id](x)
+            x = self.stages[id](x)
             y, h = exitblock(x)
             if (not self.training and h.item() > 0.5):
                 return y, id, self.cost[id]
             pred.append(y)
             conf.append(h)
-            stages_id += 1
 
-        x = self.stages[stages_id](x)
+        x = self.stages[-1](x)
         x = x.view(x.size(0), -1)
         x = self.fc(x)
         y = self.softmax(x)
         if (not self.training):
-            return y, stages_id-1, 1.0
+            return y, len(self.exits), 1.0
         pred.append(y)
 
         return (pred, conf, self.cost)

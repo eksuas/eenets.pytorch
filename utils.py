@@ -1,4 +1,5 @@
 import torch
+import os
 from torchvision import datasets, transforms
 
 class AverageMeter(object):
@@ -82,3 +83,16 @@ def display_examples(args, model, device, dataset):
                 for example in range(len(images[exit][class_id])):
                     axarr[class_id, example].imshow(dataset[images[exit][class_id][example]][0].view(28, 28))
             fig.savefig("Results/exitblock"+str(exit)+".png")
+
+
+def save_model(args, model):
+    directory = '../models/'+args.model
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    version = 1
+    while os.path.exists(directory+'/v'+str(version)+'.pt'):
+        version += 1
+
+    filename = directory+'/v'+str(version)+'.pt'
+    torch.save(model, filename)

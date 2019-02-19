@@ -30,23 +30,25 @@ def initializer():
                                           help='how many batches to wait before logging training status')
     parser.add_argument('--save-model',   action='store_true', default=False,
                                           help='For Saving the current Model')
+    parser.add_argument('--load-model',   type=str, default='',
+                                          help='the path for loading and evaluating model')
     parser.add_argument('--filters',      type=int,   default=2,
                                           help='initial filter number of basic eenets (default: 2)')
     parser.add_argument('--lamb',         type=float, default=1.0,
                                           help='lambda to arrange the balance between accuracy and cost (default: 1.0)')
-    parser.add_argument('--num_ee',       type=int,   default=2,
+    parser.add_argument('--num-ee',       type=int,   default=2,
                                           help='the number of early exit blocks (default: 3)')
     parser.add_argument('--filename',     type=str,   default='modelChart',
                                           help='the filename of plots (default: modelChart)')
     parser.add_argument('--dataset',      type=str,   default='cifar10',
                                           choices=['mnist','cifar10','svhn','imagenet'],
                                           help='dataset to be evaluted (default: cifar10)')
-    parser.add_argument('--num_classes',  type=int,   default=10,
+    parser.add_argument('--num-classes',  type=int,   default=10,
                                           help='the number of classes in the dataset (default: 10)')
     parser.add_argument('--optimizer',    type=str,   default='Adam', choices=['SGD','Adam'],
                                           help='optimizer (default: Adam)')
     parser.add_argument('--distribution', type=str,   default='gold_ratio',
-                                          choices=['gold_ratio', 'pareto', 'fine', 'linear', 'quad'],
+                                          choices=['gold_ratio', 'pareto', 'fine', 'linear'],
                                           help='distribution method of the exits (default: gold_ratio)')
     parser.add_argument('--model',        type=str,   default='eenet20',
                                           choices=['eenet8',
@@ -58,7 +60,7 @@ def initializer():
 
     args = parser.parse_args()
 
-    if(args.dataset == 'imagenet'):
+    if args.dataset == 'imagenet':
         args.num_classes = 1000
 
     torch.manual_seed(args.seed)
