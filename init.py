@@ -27,17 +27,16 @@ def initializer():
     parser.add_argument('--seed',         type=int,   default=1, metavar='S',
                                           help='random seed (default: 1)')
     parser.add_argument('--log-interval', type=int,   default=10, metavar='N',
-                                          help='how many batches to wait before logging training st\
-                                          atus')
+                                          help='how many batches to wait before logging training status')
     parser.add_argument('--save-model',   action='store_true', default=False,
-                                          help='For Saving the current Model')
+                                          help='save current model')
     parser.add_argument('--load-model',   type=str, default='',
                                           help='the path for loading and evaluating model')
     parser.add_argument('--filters',      type=int,   default=2,
                                           help='initial filter number of basic eenets (default: 2)')
     parser.add_argument('--lamb',         type=float, default=1.0,
-                                          help='lambda to arrange the balance between accuracy and \
-                                          cost (default: 1.0)')
+                                          help='lambda to arrange the balance between accuracy and cost \
+                                          (default: 1.0)')
     parser.add_argument('--num-ee',       type=int,   default=2,
                                           help='the number of early exit blocks (default: 3)')
     parser.add_argument('--filename',     type=str,   default='modelChart',
@@ -61,7 +60,7 @@ def initializer():
                                            'resnet18','resnet34','resnet50','resnet101','resnet152',
                                            'resnet20','resnet32','resnet44','resnet56', 'resnet110'
                                           ],
-                                          help='model (default: eenet20)')
+                                          help='model to be evaluated (default: eenet20)')
 
     args = parser.parse_args()
 
