@@ -24,25 +24,52 @@ def load_dataset(args, use_cuda):
     kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
 
     if (args.dataset == 'mnist'):
-        transform=transforms.Compose([transforms.ToTensor(),transforms.Normalize((0.1307,), (0.3081,))])
-        trainset = datasets.MNIST('../data/mnist', train=True, download=True, transform=transform)
-        testset  = datasets.MNIST('../data/mnist', train=False, download=True, transform=transform)
+        root = '../data/mnist'
+        transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.1307,), (0.3081,))
+        ])
+        trainset = datasets.MNIST(root=root, train=True, download=True, transform=transform)
+        testset  = datasets.MNIST(root=root, train=False, download=True, transform=transform)
 
     elif (args.dataset == 'cifar10'):
-        transform=transforms.Compose([transforms.ToTensor(),transforms.Normalize((0.5, 0.5, 0.5,), (0.5, 0.5, 0.5))])
-        trainset = datasets.CIFAR10('../data/cifar10', train=True, download=True, transform=transform)
-        testset  = datasets.CIFAR10('../data/cifar10', train=False, download=True, transform=transform)
+        root = '../data/cifar10'
+        transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5,), (0.5, 0.5, 0.5))
+        ])
+        trainset = datasets.CIFAR10(root=root, train=True, download=True, transform=transform)
+        testset  = datasets.CIFAR10(root=root, train=False, download=True, transform=transform)
 
     elif (args.dataset == 'svhn'):
-        trainset = datasets.SVHN('../data/svhn', train=True, download=True, transform=transform)
-        testset  = datasets.SVHN('../data/svhn', train=False, download=True, transform=transform)
+        root = '../data/svhn'
+        transform = transforms.Compose([
+            transforms.ToTensor(),
+        ])
+        trainset = datasets.SVHN(root=root, split='train', download=True, transform=transform)
+        testset  = datasets.SVHN(root=root, split='test', download=True, transform=transform)
 
     elif (args.dataset == 'imagenet'):
-        trainset = datasets.ImageFolder('../data/imagenet', train=True, download=True, transform=transform)
-        testset  = datasets.ImageFolder('../data/imagenet', train=False, download=True, transform=transform)
+        root = '../data/imagenet'
+        trainset = datasets.ImageFolder(root=root+'/train', transform=transforms.Compose([
+            transforms.RandomResizedCrop(224),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        ]))
 
-    train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
-    test_loader  = torch.utils.data.DataLoader(testset, batch_size=args.test_batch, shuffle=False, **kwargs)
+        testset  = datasets.ImageFolder(root=root+'/val', transform=transforms.Compose([
+            transforms.Resize(256),
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        ]))
+
+
+    train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size,
+                    shuffle=True, **kwargs)
+    test_loader  = torch.utils.data.DataLoader(testset, batch_size=args.test_batch,
+                    shuffle=False, **kwargs)
     return train_loader, test_loader
 
 
@@ -67,10 +94,11 @@ def display_examples(args, model, device, dataset):
     model.eval()
     with torch.no_grad():
         for idx, (data, target) in enumerate(dataset):
-            data = data.view(-1, 1, 28, 28)
+            data = data.view(-1, *args.input_shape)
             data, target = data.to(device), target.to(device).item()
             output, exit, _ = model(data)
-            pred = output.max(1, keepdim=True)[1].item() # get the index of the max log-probability
+            # get the index of the max log-probability
+            pred = output.max(1, keepdim=True)[1].item()
             if pred == target:
                 if len(images[exit][target]) < 10:
                     images[exit][target].append(idx)
@@ -81,7 +109,8 @@ def display_examples(args, model, device, dataset):
                 for example in range(10):
                     axarr[class_id, example].axis('off')
                 for example in range(len(images[exit][class_id])):
-                    axarr[class_id, example].imshow(dataset[images[exit][class_id][example]][0].view(28, 28))
+                    axarr[class_id, example].imshow(
+                        dataset[images[exit][class_id][example]][0].view(args.input_shape[1:]))
             fig.savefig("Results/exitblock"+str(exit)+".png")
 
 

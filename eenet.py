@@ -112,7 +112,9 @@ class ExitBlock(nn.Module):
 
 class EENet(nn.Module):
 
-    def __init__(self, is_6n2model, block, total_layers, layer_conf=None, num_ee=3, distribution="pareto", num_classes=1000, zero_init_residual=False, **kwargs):
+    def __init__(self, is_6n2model, block, total_layers, layer_conf=None, num_ee=3,
+                 distribution="pareto", num_classes=1000, zero_init_residual=False,
+                 input_shape=(3, 32, 32), **kwargs):
         super(EENet, self).__init__()
         self.inplanes = 64
         if is_6n2model:
@@ -121,7 +123,7 @@ class EENet(nn.Module):
 
         total_flops, total_params = get_model_complexity_info(
                 eval("resnet"+str(total_layers)+"(num_classes="+str(num_classes)+")"),
-                (32, 32), print_per_layer_stat=False, as_strings=False)
+                input_shape, print_per_layer_stat=False, as_strings=False)
 
         gold_rate = 1.61803398875
         flop_margin = 1.0 / (num_ee+1)
@@ -172,7 +174,7 @@ class EENet(nn.Module):
 
             part = nn.Sequential(*(list(self.stages)+list(layers)))
             flops, params = get_model_complexity_info(part,
-                    (32, 32), print_per_layer_stat=False, as_strings=False)
+                    input_shape, print_per_layer_stat=False, as_strings=False)
             if (stage_id < num_ee and flops >= threshold[stage_id]):
                 self.stages.append(nn.Sequential(*layers))
                 self.exits.append(ExitBlock(self.inplanes, num_classes))
@@ -187,7 +189,7 @@ class EENet(nn.Module):
 
                 part = nn.Sequential(*(list(self.stages)+list(layers)))
                 flops, params = get_model_complexity_info(part,
-                        (32, 32), print_per_layer_stat=False, as_strings=False)
+                        input_shape, print_per_layer_stat=False, as_strings=False)
                 if (stage_id < num_ee and flops >= threshold[stage_id]):
                     self.stages.append(nn.Sequential(*layers))
                     self.exits.append(ExitBlock(planes, num_classes))
@@ -211,7 +213,8 @@ class EENet(nn.Module):
         self.stages.append(nn.Sequential(*layers))
         self.softmax = nn.Softmax(dim=1)
 
-        assert len(self.exits) == num_ee, "The desired number of exit blocks is too much for the model capacity."
+        assert len(self.exits) == num_ee, \
+            "The desired number of exit blocks is too much for the model capacity."
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):

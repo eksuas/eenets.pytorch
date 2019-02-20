@@ -27,7 +27,8 @@ def initializer():
     parser.add_argument('--seed',         type=int,   default=1, metavar='S',
                                           help='random seed (default: 1)')
     parser.add_argument('--log-interval', type=int,   default=10, metavar='N',
-                                          help='how many batches to wait before logging training status')
+                                          help='how many batches to wait before logging training st\
+                                          atus')
     parser.add_argument('--save-model',   action='store_true', default=False,
                                           help='For Saving the current Model')
     parser.add_argument('--load-model',   type=str, default='',
@@ -35,7 +36,8 @@ def initializer():
     parser.add_argument('--filters',      type=int,   default=2,
                                           help='initial filter number of basic eenets (default: 2)')
     parser.add_argument('--lamb',         type=float, default=1.0,
-                                          help='lambda to arrange the balance between accuracy and cost (default: 1.0)')
+                                          help='lambda to arrange the balance between accuracy and \
+                                          cost (default: 1.0)')
     parser.add_argument('--num-ee',       type=int,   default=2,
                                           help='the number of early exit blocks (default: 3)')
     parser.add_argument('--filename',     type=str,   default='modelChart',
@@ -47,21 +49,28 @@ def initializer():
                                           help='the number of classes in the dataset (default: 10)')
     parser.add_argument('--optimizer',    type=str,   default='Adam', choices=['SGD','Adam'],
                                           help='optimizer (default: Adam)')
-    parser.add_argument('--distribution', type=str,   default='gold_ratio',
+    parser.add_argument('--input-shape',  type=tuple, default=(3, 32, 32),
+                                          help='the shape of dataset (default: (3, 32, 32))')
+    parser.add_argument('--distribution', type=str,   default='fine',
                                           choices=['gold_ratio', 'pareto', 'fine', 'linear'],
-                                          help='distribution method of the exits (default: gold_ratio)')
+                                          help='distribution method of exit blocks (default: fine)')
     parser.add_argument('--model',        type=str,   default='eenet20',
                                           choices=['eenet8',
-                                                'eenet18',  'eenet34',  'eenet50',  'eenet101',  'eenet152',
-                                                'eenet20',  'eenet32',  'eenet44',  'eenet56',   'eenet110',
-                                                'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152',
-                                                'resnet20', 'resnet32', 'resnet44', 'resnet56',  'resnet110',],
+                                           'eenet18', 'eenet34', 'eenet50', 'eenet101', 'eenet152',
+                                           'eenet20', 'eenet32', 'eenet44', 'eenet56',  'eenet110',
+                                           'resnet18','resnet34','resnet50','resnet101','resnet152',
+                                           'resnet20','resnet32','resnet44','resnet56', 'resnet110'
+                                          ],
                                           help='model (default: eenet20)')
 
     args = parser.parse_args()
 
-    if args.dataset == 'imagenet':
+    if (args.dataset == 'mnist'):
+        args.input_shape = (1, 28, 28)
+
+    elif (args.dataset == 'imagenet'):
         args.num_classes = 1000
+        args.input_shape = (3, 224, 224)
 
     torch.manual_seed(args.seed)
     Model = _get_object(args.model)

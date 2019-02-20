@@ -22,7 +22,7 @@ def main():
 
     if args.load_model is not '':
         model = torch.load(args.load_model).to(device)
-        
+
     else:
         kwargs = vars(args)
         model = Model(**kwargs).to(device)
@@ -50,7 +50,8 @@ def main():
             if result['acc'] > best['acc']:
                 best = result
 
-        print('The best avg loss: {:.4f}, avg cost:{:.4f}, avg acc:{:.2f}%'.format(best['loss'], best['cost']*100., best['acc']*100.))
+        print('The best avg loss: {:.4f}, avg cost:{:.4f}, avg acc:{:.2f}%'.format(best['loss'],
+            best['cost']*100., best['acc']*100.))
 
         if args.save_model:
             save_model(args, model)
@@ -71,7 +72,8 @@ def train(args, model, device, train_loader, optimizer, epoch):
             Y = [torch.tensor(0.).to(device)]*(args.num_ee) + [y[args.num_ee]]
             C = [torch.tensor(0.).to(device)]*(args.num_ee) + [torch.tensor(1.).to(device)]
 
-            loss = F.nll_loss(torch.log(Y[args.num_ee]), target) + args.lamb * torch.mean(C[args.num_ee])
+            loss = F.nll_loss(torch.log(Y[args.num_ee]), target) + \
+                   args.lamb * torch.mean(C[args.num_ee])
             for i in range(args.num_ee-1,-1,-1):
                 Y[i] = h[i] * y[i] + (1-h[i]) * Y[i+1]
                 C[i] = h[i] * c[i] + (1-h[i]) * C[i+1]
@@ -122,7 +124,8 @@ def validate(args, model, device, val_loader):
             bacc.update(pred.eq(target.view_as(pred)).sum().item())
 
     # print the results of epoch
-    print('Test set avg time: {:.4f}msec; avg loss: {:.4f}; avg acc:{:.2f}%'.format(btime.avg*100., bloss.avg, bacc.avg*100.))
+    print('Test set avg time: {:.4f}msec; avg loss: {:.4f}; avg acc:{:.2f}%'.format(btime.avg*100.,
+        bloss.avg, bacc.avg*100.))
 
     # detail print for EENet based models
     if isinstance(model, EENet) or isinstance(model, CustomEENet):
