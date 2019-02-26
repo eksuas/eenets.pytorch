@@ -21,7 +21,7 @@ class AverageMeter(object):
 
 
 def load_dataset(args, use_cuda):
-    kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
+    kwargs = {'num_workers': 2, 'pin_memory': True} if use_cuda else {}
 
     if (args.dataset == 'mnist'):
         root = '../data/mnist'
@@ -34,12 +34,20 @@ def load_dataset(args, use_cuda):
 
     elif (args.dataset == 'cifar10'):
         root = '../data/cifar10'
-        transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5,), (0.5, 0.5, 0.5))
-        ])
-        trainset = datasets.CIFAR10(root=root, train=True, download=True, transform=transform)
-        testset  = datasets.CIFAR10(root=root, train=False, download=True, transform=transform)
+        trainset = datasets.CIFAR10(root=root, train=True, download=True,
+            transform=transforms.Compose([
+                    transforms.RandomCrop(32, padding=4),
+                    transforms.RandomHorizontalFlip(),
+                    transforms.ToTensor(),
+                    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+            ]))
+
+
+        testset = datasets.CIFAR10(root=root, train=False, download=True,
+            transform=transforms.Compose([
+                    transforms.ToTensor(),
+                    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+            ]))
 
     elif (args.dataset == 'svhn'):
         root = '../data/svhn'
@@ -125,3 +133,12 @@ def save_model(args, model):
 
     filename = directory+'/v'+str(version)+'.pt'
     torch.save(model, filename)
+
+
+def adjust_learning_rate(optimizer, epoch):
+    lr = 0.01
+    if epoch > 280:
+        lr = 0.001
+
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = lr

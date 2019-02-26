@@ -40,6 +40,7 @@ def main():
         best = {'acc':0}
         history = {'acc':[], 'loss':[], 'cost':[]}
         for epoch in range(1, args.epochs + 1):
+            adjust_learning_rate(optimizer, epoch)
             print('{:2d}:'.format(epoch), end ="")
             train(args, model, device, train_loader, optimizer, epoch)
             result = validate(args, model, device, test_loader)
