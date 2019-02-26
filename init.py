@@ -12,16 +12,18 @@ from resnet import *
 def initializer():
     # Training settings
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
-    parser.add_argument('--batch-size',   type=int,   default=32, metavar='N',
-                                          help='input batch size for training (default: 32)')
+    parser.add_argument('--batch-size',   type=int,   default=256, metavar='N',
+                                          help='input batch size for training (default: 256)')
     parser.add_argument('--test-batch',   type=int,   default=1, metavar='N',
                                           help='input batch size for testing (default: 1)')
     parser.add_argument('--epochs',       type=int,   default=10, metavar='N',
                                           help='number of epochs to train (default: 10)')
-    parser.add_argument('--lr',           type=float, default=0.001, metavar='LR',
-                                          help='learning rate (default: 0.001)')
-    parser.add_argument('--momentum',     type=float, default=0.5, metavar='M',
-                                          help='SGD momentum (default: 0.5)')
+    parser.add_argument('--lr',           type=float, default=0.1, metavar='LR',
+                                          help='learning rate (default: 0.1)')
+    parser.add_argument('--momentum',     type=float, default=0.9, metavar='M',
+                                          help='SGD momentum (default: 0.9)')
+    parser.add_argument('--weight-decay', type=float, default=0.0001, metavar='M',
+                                          help='weight decay for optimizers (default: 0.0001)')
     parser.add_argument('--no-cuda',      action='store_true', default=False,
                                           help='disables CUDA training')
     parser.add_argument('--seed',         type=int,   default=1, metavar='S',
@@ -47,8 +49,8 @@ def initializer():
                                           help='dataset to be evaluted (default: cifar10)')
     parser.add_argument('--num-classes',  type=int,   default=10,
                                           help='the number of classes in the dataset (default: 10)')
-    parser.add_argument('--optimizer',    type=str,   default='Adam', choices=['SGD','Adam'],
-                                          help='optimizer (default: Adam)')
+    parser.add_argument('--optimizer',    type=str,   default='SGD', choices=['SGD','Adam'],
+                                          help='optimizer (default: SGD)')
     parser.add_argument('--input-shape',  type=tuple, default=(3, 32, 32),
                                           help='the shape of dataset (default: (3, 32, 32))')
     parser.add_argument('--distribution', type=str,   default='fine',
