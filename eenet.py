@@ -178,6 +178,11 @@ class EENet(nn.Module):
             if (stage_id < num_ee and flops >= threshold[stage_id]):
                 self.stages.append(nn.Sequential(*layers))
                 self.exits.append(ExitBlock(self.inplanes, num_classes))
+
+                part = nn.Sequential(*(list(self.stages)+list(self.exits)[-1:]))
+                flops, params = get_model_complexity_info(part,
+                        input_shape, print_per_layer_stat=False, as_strings=False)
+
                 self.cost.append(flops / total_flops)
                 self.complexity.append((flops, params))
                 layers = nn.ModuleList()
@@ -193,6 +198,11 @@ class EENet(nn.Module):
                 if (stage_id < num_ee and flops >= threshold[stage_id]):
                     self.stages.append(nn.Sequential(*layers))
                     self.exits.append(ExitBlock(planes, num_classes))
+
+                    part = nn.Sequential(*(list(self.stages)+list(self.exits)[-1:]))
+                    flops, params = get_model_complexity_info(part,
+                            input_shape, print_per_layer_stat=False, as_strings=False)
+                            
                     self.cost.append(flops / total_flops)
                     self.complexity.append((flops, params))
                     layers = nn.ModuleList()
