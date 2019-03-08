@@ -3,7 +3,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from matplotlib.ticker import MaxNLocator
 from torchsummary import summary
 from flops_counter import *
-from thop import profile
+#from thop import profile
 from init import *
 from utils import *
 
@@ -40,7 +40,7 @@ def main():
         best = {'acc':0}
         history = {'acc':[], 'loss':[], 'cost':[]}
         for epoch in range(1, args.epochs + 1):
-            adjust_learning_rate(optimizer, epoch)
+            adjust_learning_rate(model, optimizer, epoch)
             print('{:2d}:'.format(epoch), end ="")
             train(args, model, device, train_loader, optimizer, epoch)
             result = validate(args, model, device, test_loader)
@@ -64,7 +64,7 @@ def main():
 def train(args, model, device, train_loader, optimizer, epoch):
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
-        data, target = data.to(device), target.to(device)
+        data, target = data.to(device), target.to(device, dtype=torch.int64)
         optimizer.zero_grad()
 
         # training settings for EENet based models
@@ -101,7 +101,7 @@ def validate(args, model, device, val_loader):
     model.eval()
     with torch.no_grad():
         for data, target in val_loader:
-            data, target = data.to(device), target.to(device)
+            data, target = data.to(device), target.to(device, dtype=torch.int64)
             # compute output
             start = time.process_time()
 
