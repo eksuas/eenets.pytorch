@@ -1,6 +1,8 @@
 import torch
 import os
 from torchvision import datasets, transforms
+from custom_eenet import *
+from eenet import *
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
@@ -50,12 +52,18 @@ def load_dataset(args, use_cuda):
             ]))
 
     elif (args.dataset == 'svhn'):
+        def target_transform(target):
+            return int(target[0]-1)
+
         root = '../data/svhn'
         transform = transforms.Compose([
             transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
         ])
-        trainset = datasets.SVHN(root=root, split='train', download=True, transform=transform)
-        testset  = datasets.SVHN(root=root, split='test', download=True, transform=transform)
+        trainset = datasets.SVHN(root=root, split='train', download=True, transform=transform,
+                    target_transform=target_transform)
+        testset  = datasets.SVHN(root=root, split='test', download=True, transform=transform,
+                    target_transform=target_transform)
 
     elif (args.dataset == 'imagenet'):
         root = '../data/imagenet'
@@ -135,10 +143,15 @@ def save_model(args, model):
     torch.save(model, filename)
 
 
-def adjust_learning_rate(optimizer, epoch):
-    lr = 0.01
-    if epoch > 280:
+def adjust_learning_rate(model, optimizer, epoch):
+    lr = 0.1
+    if epoch > 150:
+        lr = 0.01
+    if epoch > 250:
         lr = 0.001
+
+    if isinstance(model, EENet) or isinstance(model, CustomEENet):
+        lr *= 0.01
 
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
