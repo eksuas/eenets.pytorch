@@ -81,12 +81,50 @@ def load_dataset(args, use_cuda):
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ]))
 
+    elif (args.dataset == 'tiny-imagenet'):
+        create_val_img_folder()
+        root = '../data/tiny-imagenet'
+        trainset = datasets.ImageFolder(root=root+'/train', transform=transforms.Compose([
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor()
+        ]))
+
+        testset  = datasets.ImageFolder(root=root+'/val/images', transform=transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+        ]))
+
+
 
     train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size,
                     shuffle=True, **kwargs)
     test_loader  = torch.utils.data.DataLoader(testset, batch_size=args.test_batch,
                     shuffle=False, **kwargs)
     return train_loader, test_loader
+
+
+def create_val_img_folder():
+    '''
+    This method is responsible for separating validation images into separate sub folders
+    '''
+    val_dir = '../data/tiny-imagenet/val'
+    img_dir = os.path.join(val_dir, 'images')
+
+    fp = open(os.path.join(val_dir, 'val_annotations.txt'), 'r')
+    data = fp.readlines()
+    val_img_dict = {}
+    for line in data:
+        words = line.split('\t')
+        val_img_dict[words[0]] = words[1]
+    fp.close()
+
+    # Create folder if not present and move images into proper folders
+    for img, folder in val_img_dict.items():
+        newpath = (os.path.join(img_dir, folder))
+        if not os.path.exists(newpath):
+            os.makedirs(newpath)
+        if os.path.exists(os.path.join(img_dir, img)):
+            os.rename(os.path.join(img_dir, img), os.path.join(newpath, img))
 
 
 def plotCharts (history, args):

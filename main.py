@@ -9,6 +9,7 @@ from utils import *
 
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
+import torch.nn as nn
 import numpy as np
 import time
 
@@ -22,10 +23,12 @@ def main():
 
     if args.load_model is not '':
         model = torch.load(args.load_model).to(device)
+        #model = nn.DataParallel(torch.load(args.load_model)).to(device)
 
     else:
         kwargs = vars(args)
         model = Model(**kwargs).to(device)
+        #model = nn.DataParallel(Model(**kwargs)).to(device)
 
         # exit distribution of EENet based models
         if isinstance(model, EENet):
@@ -43,14 +46,15 @@ def main():
             adjust_learning_rate(model, optimizer, epoch)
             print('{:2d}:'.format(epoch), end ="")
             train(args, model, device, train_loader, optimizer, epoch)
-            result = validate(args, model, device, test_loader)
-            for key, value in result.items():
-                history[key].append(value)
-            scheduler.step(result['loss'])
+            #result = validate(args, model, device, test_loader)
+            #for key, value in result.items():
+            #    history[key].append(value)
+            #scheduler.step(result['loss'])
             # save model
-            if result['acc'] > best['acc']:
-                best = result
+            #if result['acc'] > best['acc']:
+            #    best = result
 
+        best = validate(args, model, device, test_loader)
         print('The best avg loss: {:.4f}, avg cost:{:.4f}, avg acc:{:.2f}%'.format(best['loss'],
             best['cost']*100., best['acc']*100.))
 

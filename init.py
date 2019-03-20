@@ -44,7 +44,7 @@ def initializer():
     parser.add_argument('--filename',     type=str,   default='modelChart',
                                           help='the filename of plots (default: modelChart)')
     parser.add_argument('--dataset',      type=str,   default='cifar10',
-                                          choices=['mnist','cifar10','svhn','imagenet'],
+                                          choices=['mnist','cifar10','svhn','imagenet','tiny-imagenet'],
                                           help='dataset to be evaluted (default: cifar10)')
     parser.add_argument('--num-classes',  type=int,   default=10,
                                           help='the number of classes in the dataset (default: 10)')
@@ -72,6 +72,10 @@ def initializer():
     elif (args.dataset == 'imagenet'):
         args.num_classes = 1000
         args.input_shape = (3, 224, 224)
+
+    elif (args.dataset == 'tiny-imagenet'):
+        args.num_classes = 200
+        args.input_shape = (3, 64, 64)
 
     torch.manual_seed(args.seed)
     Model = _get_object(args.model)
