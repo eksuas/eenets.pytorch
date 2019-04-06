@@ -53,17 +53,17 @@ def load_dataset(args, use_cuda):
 
     elif (args.dataset == 'svhn'):
         def target_transform(target):
-            return int(target[0]-1)
+            return target[0]-1
 
         root = '../data/svhn'
         transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
         ])
-        trainset = datasets.SVHN(root=root, split='train', download=True, transform=transform,
-                    target_transform=target_transform)
-        testset  = datasets.SVHN(root=root, split='test', download=True, transform=transform,
-                    target_transform=target_transform)
+        trainset = datasets.SVHN(root=root, split='train', download=True, transform=transform)
+                    #,target_transform=target_transform)
+        testset  = datasets.SVHN(root=root, split='test', download=True, transform=transform)
+                    #,target_transform=target_transform)
 
     elif (args.dataset == 'imagenet'):
         root = '../data/imagenet'
@@ -86,7 +86,8 @@ def load_dataset(args, use_cuda):
         root = '../data/tiny-imagenet'
         trainset = datasets.ImageFolder(root=root+'/train', transform=transforms.Compose([
             transforms.RandomHorizontalFlip(),
-            transforms.ToTensor()
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
         ]))
 
         testset  = datasets.ImageFolder(root=root+'/val/images', transform=transforms.Compose([

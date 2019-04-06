@@ -22,7 +22,7 @@ def main():
 
 
     if args.load_model is not '':
-        model = torch.load(args.load_model).to(device)
+        model = torch.load(args.load_model).to(device)    
         #model = nn.DataParallel(torch.load(args.load_model)).to(device)
 
     else:
@@ -46,15 +46,15 @@ def main():
             adjust_learning_rate(model, optimizer, epoch)
             print('{:2d}:'.format(epoch), end ="")
             train(args, model, device, train_loader, optimizer, epoch)
-            #result = validate(args, model, device, test_loader)
-            #for key, value in result.items():
-            #    history[key].append(value)
-            #scheduler.step(result['loss'])
-            # save model
-            #if result['acc'] > best['acc']:
-            #    best = result
+            
+            #if epoch % 1 == 0 or epoch == args.epochs:
+            result = validate(args, model, device, test_loader)
+            for key, value in result.items():
+                history[key].append(value)
+            scheduler.step(result['loss'])
+            if result['acc'] > best['acc']:
+                best = result
 
-        best = validate(args, model, device, test_loader)
         print('The best avg loss: {:.4f}, avg cost:{:.4f}, avg acc:{:.2f}%'.format(best['loss'],
             best['cost']*100., best['acc']*100.))
 
