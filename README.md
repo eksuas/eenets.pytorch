@@ -60,13 +60,11 @@ optional arguments:
   --weight-decay M      		weight decay for optimizers (default: 0.0001)
   --no-cuda             		disables CUDA training
   --seed S              		random seed (default: 1)
-  --log-interval N      		how many batches to wait before logging training
-								status
+  --log-interval N      		how many batches to wait before logging training status
   --save-model          		save current model
   --load-model LOAD_MODEL		the path for loading and evaluating model
   --filters FILTERS     		initial filter number of basic eenets (default: 2)
-  --lambda-coef LAMBDA_COEF		lambda to arrange the balance between accuracy and
-								cost (default: 1.0)
+  --lambda-coef LAMBDA_COEF		lambda to arrange the balance between accuracy and cost (default: 1.0)
   --num-ee NUM_EE       		the number of early exit blocks (default: 3)
   --filename FILENAME   		the filename of plots (default: modelChart)
   --dataset {mnist,cifar10,		dataset to be evaluted (default: cifar10)
