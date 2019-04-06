@@ -43,9 +43,9 @@ usage: main.py [-h] [--batch-size N] [--test-batch N] [--epochs N] [--lr LR]
                [--input-shape INPUT_SHAPE]
                [--distribution {gold_ratio,pareto,fine,linear}]
                [--model {eenet8,eenet18,eenet34,eenet50,eenet101,eenet152,
-			             eenet20,eenet32,eenet44,eenet56,eenet110,
-						 resnet18,resnet34,resnet50,resnet101,resnet152,
-						 resnet20,resnet32,resnet44,resnet56,resnet110}]
+			 eenet20,eenet32,eenet44,eenet56,eenet110,
+			 resnet18,resnet34,resnet50,resnet101,resnet152,
+			 resnet20,resnet32,resnet44,resnet56,resnet110}]
 
 PyTorch MNIST Example
 
@@ -70,26 +70,26 @@ optional arguments:
   --num-ee NUM_EE       		the number of early exit blocks (default: 3)
   --filename FILENAME   		the filename of plots (default: modelChart)
   --dataset {mnist,cifar10,		dataset to be evaluted (default: cifar10)
-			 svhn,imagenet,
-			 tiny-imagenet}	
+	     svhn,imagenet,
+	     tiny-imagenet}	
   --num-classes NUM_CLASSES		the number of classes in the dataset (default: 10)
   --optimizer {SGD,Adam}		optimizer (default: SGD)
   --input-shape INPUT_SHAPE		the shape of dataset (default: (3, 32, 32))
-  --distribution {gold_ratio,	distribution method of exit blocks (default: fine)
-				  pareto,
-				  fine,
-				  linear}
+  --distribution {gold_ratio,		distribution method of exit blocks (default: fine)
+		  pareto,
+		  fine,
+		  linear}
   --model {eenet8,eenet18,		model to be evaluated (default: eenet20)
-		   eenet34,eenet50,
-		   eenet101,eenet152,
-		   eenet20,eenet32,
-		   eenet44,eenet56,
-		   eenet110,resnet18,
-		   resnet34,resnet50,
-		   resnet101,resnet152,
-		   resnet20,resnet32,
-		   resnet44,resnet56,
-		   resnet110}
+	   eenet34,eenet50,
+	   eenet101,eenet152,
+	   eenet20,eenet32,
+	   eenet44,eenet56,
+	   eenet110,resnet18,
+	   resnet34,resnet50,
+	   resnet101,resnet152,
+	   resnet20,resnet32,
+	   resnet44,resnet56,
+	   resnet110}
 ```
 
 Example training command:
