@@ -5,7 +5,7 @@ This repository contains PyTorch implementation of EENets: Early Exit Convolutio
 
 The codes are developed with python35 environment and tested on Windows and Linux with cuda-9 and cuda-10. The development environment consists of
  * i7-6700HQ CPU processor with 16GB RAM 
- * 2x NVIDIA Tesla P100 16GB.
+ * NVIDIA Tesla P100 16GB.
 
 ### Prerequisites
 
@@ -33,49 +33,63 @@ The main.py includes command line arguments, to see them:
 ```
 $ python main.py --help
 usage: main.py [-h] [--batch-size N] [--test-batch N] [--epochs N] [--lr LR]
-               [--momentum M] [--no-cuda] [--seed S] [--log-interval N]
-               [--save-model] [--load-model LOAD_MODEL] [--filters FILTERS]
-               [--lamb LAMB] [--num-ee NUM_EE] [--filename FILENAME]
-               [--dataset {mnist,cifar10,svhn,imagenet}]
+               [--adjust-lr] [--momentum M] [--weight-decay M] [--no-cuda]
+               [--seed S] [--log-interval N] [--save-model]
+               [--load-model LOAD_MODEL] [--filters FILTERS]
+               [--lambda-coef LAMBDA_COEF] [--num-ee NUM_EE]
+               [--filename FILENAME]
+               [--dataset {mnist,cifar10,svhn,imagenet,tiny-imagenet}]
                [--num-classes NUM_CLASSES] [--optimizer {SGD,Adam}]
                [--input-shape INPUT_SHAPE]
                [--distribution {gold_ratio,pareto,fine,linear}]
                [--model {eenet8,eenet18,eenet34,eenet50,eenet101,eenet152,
-	                 eenet20,eenet32,eenet44,eenet56,eenet110,resnet18,
-			 resnet34,resnet50,resnet101,resnet152,resnet20,
-			 resnet32,resnet44,resnet56,resnet110}]
+			             eenet20,eenet32,eenet44,eenet56,eenet110,
+						 resnet18,resnet34,resnet50,resnet101,resnet152,
+						 resnet20,resnet32,resnet44,resnet56,resnet110}]
 
 PyTorch MNIST Example
 
 optional arguments:
-  -h, --help            			show this help message and exit
-  --batch-size N        			input batch size for training (default: 32)
-  --test-batch N        			input batch size for testing (default: 1)
-  --epochs N            			number of epochs to train (default: 10)
-  --lr LR               			learning rate (default: 0.001)
-  --momentum M          			SGD momentum (default: 0.5)
-  --no-cuda             			disables CUDA training
-  --seed S              			random seed (default: 1)
-  --log-interval N      			how many batches to wait before logging training status
-  --save-model          			save current model
-  --load-model LOAD_MODEL			the path for loading and evaluating model
-  --filters FILTERS     			initial filter number of custom eenet-8 (default: 2)
-  --lamb LAMB           			lambda to arrange the balance between accuracy and cost (default: 1.0)
-  --num-ee NUM_EE       			the number of early exit blocks (default: 3)
-  --filename FILENAME   			the filename of plots (default: modelChart)
-  --dataset {mnist,cifar10,svhn,imagenet}	dataset to be evaluted (default: cifar10)
-  --num-classes NUM_CLASSES			the number of classes in the dataset (default: 10)
-  --optimizer {SGD,Adam}			optimizer (default: Adam)
-  --input-shape INPUT_SHAPE			the shape of dataset (default: (3, 32, 32))
-  --distribution {gold_ratio,pareto,		
-  	fine,linear}				distribution method of exit blocks (default: fine)		
-  --model {eenet8,eenet18,eenet34,eenet50,
-  	eenet101,eenet152,eenet20,eenet32,
-	eenet44,eenet56,eenet110,resnet18,
-	resnet34,resnet50,resnet101,resnet152,
-	resnet20,resnet32,resnet44,resnet56,
-	resnet110}				model to be evaluated (default: eenet20)						
-  
+  -h, --help            		show this help message and exit
+  --batch-size N        		input batch size for training (default: 256)
+  --test-batch N        		input batch size for testing (default: 1)
+  --epochs N            		number of epochs to train (default: 10)
+  --lr LR               		learning rate (default: 0.1)
+  --adjust-lr           		adjust the learning rate
+  --momentum M          		SGD momentum (default: 0.9)
+  --weight-decay M      		weight decay for optimizers (default: 0.0001)
+  --no-cuda             		disables CUDA training
+  --seed S              		random seed (default: 1)
+  --log-interval N      		how many batches to wait before logging training
+								status
+  --save-model          		save current model
+  --load-model LOAD_MODEL		the path for loading and evaluating model
+  --filters FILTERS     		initial filter number of basic eenets (default: 2)
+  --lambda-coef LAMBDA_COEF		lambda to arrange the balance between accuracy and
+								cost (default: 1.0)
+  --num-ee NUM_EE       		the number of early exit blocks (default: 3)
+  --filename FILENAME   		the filename of plots (default: modelChart)
+  --dataset {mnist,cifar10,		dataset to be evaluted (default: cifar10)
+			 svhn,imagenet,
+			 tiny-imagenet}	
+  --num-classes NUM_CLASSES		the number of classes in the dataset (default: 10)
+  --optimizer {SGD,Adam}		optimizer (default: SGD)
+  --input-shape INPUT_SHAPE		the shape of dataset (default: (3, 32, 32))
+  --distribution {gold_ratio,	distribution method of exit blocks (default: fine)
+				  pareto,
+				  fine,
+				  linear}
+  --model {eenet8,eenet18,		model to be evaluated (default: eenet20)
+		   eenet34,eenet50,
+		   eenet101,eenet152,
+		   eenet20,eenet32,
+		   eenet44,eenet56,
+		   eenet110,resnet18,
+		   resnet34,resnet50,
+		   resnet101,resnet152,
+		   resnet20,resnet32,
+		   resnet44,resnet56,
+		   resnet110}
 ```
 
 Example training command:
