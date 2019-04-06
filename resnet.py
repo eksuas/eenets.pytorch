@@ -1,10 +1,13 @@
-import torch.nn as nn
-import torch.utils.model_zoo as model_zoo
+"""
+ResNet models
+"""
+from torch import  nn
+from torch.utils import model_zoo
 
 
 __all__ = ['ResNet', 'ResNet6n2',
            'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152',
-           'resnet20', 'resnet32', 'resnet44', 'resnet56',  'resnet110',]
+           'resnet20', 'resnet32', 'resnet44', 'resnet56', 'resnet110',]
 
 
 model_urls = {
@@ -28,6 +31,11 @@ def conv1x1(in_planes, out_planes, stride=1):
 
 
 class BasicBlock(nn.Module):
+    """Basic Block defition.
+
+    Basic 3X3 convolution blocks for use on ResNets with layers <= 34.
+    Follows improved proposed scheme in http://arxiv.org/pdf/1603.05027v2.pdf
+    """
     expansion = 1
 
     def __init__(self, inplanes, planes, stride=1, downsample=None, **kwargs):
@@ -60,6 +68,11 @@ class BasicBlock(nn.Module):
 
 
 class Bottleneck(nn.Module):
+    """Bottleneck Block defition.
+
+    Bottleneck architecture for > 34 layer ResNets.
+    Follows improved proposed scheme in http://arxiv.org/pdf/1603.05027v2.pdf
+    """
     expansion = 4
 
     def __init__(self, inplanes, planes, stride=1, downsample=None, **kwargs):
@@ -98,7 +111,20 @@ class Bottleneck(nn.Module):
 
 
 class ResNet(nn.Module):
+    """Builds a ResNet like architecture.
 
+    Arguments are
+    * block:              Block function of the architecture either 'BasicBlock' or 'Bottleneck'.
+    * layers:             The total number of layers.
+    * num_classes:        The number of classes in the dataset.
+    * zero_init_residual: Zero-initialize the last BN in each residual branch,
+                          so that the residual branch starts with zeros,
+                          and each residual block behaves like an identity. This improves the model
+                          by 0.2~0.3% according to https://arxiv.org/abs/1706.02677
+
+    Returns:
+        The nn.Module.
+    """
     def __init__(self, block, layers, num_classes=1000, zero_init_residual=False, **kwargs):
         super(ResNet, self).__init__()
         self.inplanes = 64
@@ -112,24 +138,25 @@ class ResNet(nn.Module):
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(512 * block.expansion, num_classes)
+        self.fully_connected = nn.Linear(512 * block.expansion, num_classes)
 
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
+        for module in self.modules():
+            if isinstance(module, nn.Conv2d):
+                nn.init.kaiming_normal_(module.weight, mode='fan_out', nonlinearity='relu')
+            elif isinstance(module, nn.BatchNorm2d):
+                nn.init.constant_(module.weight, 1)
+                nn.init.constant_(module.bias, 0)
 
         # Zero-initialize the last BN in each residual branch,
-        # so that the residual branch starts with zeros, and each residual block behaves like an identity.
+        # so that the residual branch starts with zeros,
+        # and each residual block behaves like an identity.
         # This improves the model by 0.2~0.3% according to https://arxiv.org/abs/1706.02677
         if zero_init_residual:
-            for m in self.modules():
-                if isinstance(m, Bottleneck):
-                    nn.init.constant_(m.bn3.weight, 0)
-                elif isinstance(m, BasicBlock):
-                    nn.init.constant_(m.bn2.weight, 0)
+            for module in self.modules():
+                if isinstance(module, Bottleneck):
+                    nn.init.constant_(module.bn3.weight, 0)
+                elif isinstance(module, BasicBlock):
+                    nn.init.constant_(module.bn2.weight, 0)
 
     def _make_layer(self, block, planes, blocks, stride=1):
         downsample = None
@@ -160,13 +187,26 @@ class ResNet(nn.Module):
 
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
-        x = self.fc(x)
+        x = self.fully_connected(x)
 
         return x
 
 
 class ResNet6n2(nn.Module):
+    """Builds a ResNet like architecture.
 
+    Arguments are
+    * block:              Block function of the architecture either 'BasicBlock' or 'Bottleneck'.
+    * layers:             The total number of layers.
+    * num_classes:        The number of classes in the dataset.
+    * zero_init_residual: Zero-initialize the last BN in each residual branch,
+                          so that the residual branch starts with zeros,
+                          and each residual block behaves like an identity. This improves the model
+                          by 0.2~0.3% according to https://arxiv.org/abs/1706.02677
+
+    Returns:
+        The nn.Module.
+    """
     def __init__(self, block, layers, num_classes=1000, zero_init_residual=False, **kwargs):
         super(ResNet6n2, self).__init__()
         layer_blocks = (layers-2) // 6
@@ -180,24 +220,25 @@ class ResNet6n2(nn.Module):
         self.stage3 = self._make_layer(block, 64, layer_blocks, stride=2)
 
         self.avgpool = nn.AvgPool2d(8)
-        self.fc = nn.Linear(64 * block.expansion, num_classes)
+        self.fully_connected = nn.Linear(64 * block.expansion, num_classes)
 
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
+        for module in self.modules():
+            if isinstance(module, nn.Conv2d):
+                nn.init.kaiming_normal_(module.weight, mode='fan_out', nonlinearity='relu')
+            elif isinstance(module, nn.BatchNorm2d):
+                nn.init.constant_(module.weight, 1)
+                nn.init.constant_(module.bias, 0)
 
         # Zero-initialize the last BN in each residual branch,
-        # so that the residual branch starts with zeros, and each residual block behaves like an identity.
+        # so that the residual branch starts with zeros,
+        # and each residual block behaves like an identity.
         # This improves the model by 0.2~0.3% according to https://arxiv.org/abs/1706.02677
         if zero_init_residual:
-            for m in self.modules():
-                if isinstance(m, Bottleneck):
-                    nn.init.constant_(m.bn3.weight, 0)
-                elif isinstance(m, BasicBlock):
-                    nn.init.constant_(m.bn2.weight, 0)
+            for module in self.modules():
+                if isinstance(module, Bottleneck):
+                    nn.init.constant_(module.bn3.weight, 0)
+                elif isinstance(module, BasicBlock):
+                    nn.init.constant_(module.bn2.weight, 0)
 
     def _make_layer(self, block, planes, blocks, stride=1):
         downsample = None
@@ -226,7 +267,7 @@ class ResNet6n2(nn.Module):
 
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
-        x = self.fc(x)
+        x = self.fully_connected(x)
 
         return x
 
@@ -234,8 +275,8 @@ class ResNet6n2(nn.Module):
 def resnet18(pretrained=False, **kwargs):
     """Constructs a ResNet-18 model.
 
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    Arguments are
+    * pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = ResNet(BasicBlock, [2, 2, 2, 2], **kwargs)
     if pretrained:
@@ -246,8 +287,8 @@ def resnet18(pretrained=False, **kwargs):
 def resnet34(pretrained=False, **kwargs):
     """Constructs a ResNet-34 model.
 
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    Arguments are
+    * pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = ResNet(BasicBlock, [3, 4, 6, 3], **kwargs)
     if pretrained:
@@ -258,8 +299,8 @@ def resnet34(pretrained=False, **kwargs):
 def resnet50(pretrained=False, **kwargs):
     """Constructs a ResNet-50 model.
 
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    Arguments are
+    * pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = ResNet(Bottleneck, [3, 4, 6, 3], **kwargs)
     if pretrained:
@@ -270,8 +311,8 @@ def resnet50(pretrained=False, **kwargs):
 def resnet101(pretrained=False, **kwargs):
     """Constructs a ResNet-101 model.
 
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    Arguments are
+    * pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = ResNet(Bottleneck, [3, 4, 23, 3], **kwargs)
     if pretrained:
@@ -282,8 +323,8 @@ def resnet101(pretrained=False, **kwargs):
 def resnet152(pretrained=False, **kwargs):
     """Constructs a ResNet-152 model.
 
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
+    Arguments are
+    * pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = ResNet(Bottleneck, [3, 8, 36, 3], **kwargs)
     if pretrained:
@@ -292,35 +333,30 @@ def resnet152(pretrained=False, **kwargs):
 
 
 def resnet20(**kwargs):
-    """Constructs a ResNet-20 model.
-    """
+    """Constructs a ResNet-20 model."""
     model = ResNet6n2(BasicBlock, 20, **kwargs)
     return model
 
 
 def resnet32(**kwargs):
-    """Constructs a ResNet-32 model.
-    """
+    """Constructs a ResNet-32 model."""
     model = ResNet6n2(BasicBlock, 32, **kwargs)
     return model
 
 
 def resnet44(**kwargs):
-    """Constructs a ResNet-44 model.
-    """
+    """Constructs a ResNet-44 model."""
     model = ResNet6n2(BasicBlock, 44, **kwargs)
     return model
 
 
 def resnet56(**kwargs):
-    """Constructs a ResNet-56 model.
-    """
+    """Constructs a ResNet-56 model."""
     model = ResNet6n2(BasicBlock, 56, **kwargs)
     return model
 
 
 def resnet110(**kwargs):
-    """Constructs a ResNet-110 model.
-    """
+    """Constructs a ResNet-110 model."""
     model = ResNet6n2(BasicBlock, 110, **kwargs)
     return model

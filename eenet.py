@@ -1,17 +1,18 @@
-import torch.nn as nn
-import torch.utils.model_zoo as model_zoo
+"""
+EENet models
+"""
+from torch import nn
 from flops_counter import get_model_complexity_info
-from resnet import *
+from resnet import ResNet, ResNet6n2
 
 __all__ = ['EENet',
            'eenet18', 'eenet34', 'eenet50', 'eenet101', 'eenet152',
-           'eenet20', 'eenet32', 'eenet44', 'eenet56',  'eenet110',]
+           'eenet20', 'eenet32', 'eenet44', 'eenet56', 'eenet110',]
 
 
 def conv3x3(in_planes, out_planes, stride=1):
     """3x3 convolution with padding"""
-    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
-                     padding=1, bias=False)
+    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, bias=False)
 
 
 def conv1x1(in_planes, out_planes, stride=1):
@@ -20,6 +21,11 @@ def conv1x1(in_planes, out_planes, stride=1):
 
 
 class BasicBlock(nn.Module):
+    """Basic Block defition.
+
+    Basic 3X3 convolution blocks for use on ResNets with layers <= 34.
+    Follows improved proposed scheme in http://arxiv.org/pdf/1603.05027v2.pdf
+    """
     expansion = 1
 
     def __init__(self, inplanes, planes, stride=1, downsample=None):
@@ -52,6 +58,11 @@ class BasicBlock(nn.Module):
 
 
 class Bottleneck(nn.Module):
+    """Bottleneck Block defition.
+
+    Bottleneck architecture for > 34 layer ResNets.
+    Follows improved proposed scheme in http://arxiv.org/pdf/1603.05027v2.pdf
+    """
     expansion = 4
 
     def __init__(self, inplanes, planes, stride=1, downsample=None):
@@ -90,6 +101,10 @@ class Bottleneck(nn.Module):
 
 
 class ExitBlock(nn.Module):
+    """Exit Block defition.
+
+    This allows the model to terminate early when it is confident for classification.
+    """
     def __init__(self, inplanes, num_classes):
         super(ExitBlock, self).__init__()
         self.inplanes = inplanes
@@ -105,38 +120,59 @@ class ExitBlock(nn.Module):
 
     def forward(self, x):
         x = self.pool(x).view(-1, self.inplanes)
-        h = self.confidence(x)
-        y = self.classifier(x)
-        return y, h
+        conf = self.confidence(x)
+        pred = self.classifier(x)
+        return pred, conf
 
 
 class EENet(nn.Module):
+    """Builds a EENet like architecture.
 
-    def __init__(self, is_6n2model, block, total_layers, layer_conf=None, num_ee=3,
+    Arguments are
+    * is_6n2model:        Whether the architecture of the model is 6n+2 layered ResNet.
+    * block:              Block function of the architecture either 'BasicBlock' or 'Bottleneck'.
+    * total_layers:       The total number of layers.
+    * repetitions:        Number of repetitions of various block units.
+    * num_ee:             The number of early exit blocks.
+    * distribution:       Distribution method of the early exit blocks.
+    * num_classes:        The number of classes in the dataset.
+    * zero_init_residual: Zero-initialize the last BN in each residual branch,
+                          so that the residual branch starts with zeros,
+                          and each residual block behaves like an identity. This improves the model
+                          by 0.2~0.3% according to https://arxiv.org/abs/1706.02677
+    * input_shape:        Input shape of the model according to dataset.
+
+    Returns:
+        The nn.Module.
+    """
+    def __init__(self, is_6n2model, block, total_layers, repetitions=None, num_ee=3,
                  distribution="pareto", num_classes=1000, zero_init_residual=False,
                  input_shape=(3, 32, 32), **kwargs):
         super(EENet, self).__init__()
         self.inplanes = 64
         if is_6n2model:
             self.inplanes = 16
-            layer_conf = [(total_layers-2) // 6]*3
+            repetitions = [(total_layers-2) // 6]*3
 
-        total_flops, total_params = get_model_complexity_info(
-                eval("resnet"+str(total_layers)+"(num_classes="+str(num_classes)+")"),
+
+
+        total_flops, total_params = get_model_complexity_info(\
+                ResNet6n2(block, total_layers) if is_6n2model else ResNet(block, repetitions),
+                #eval("resnet"+str(total_layers)+"(num_classes="+str(num_classes)+")"),
                 input_shape, print_per_layer_stat=False, as_strings=False)
 
         gold_rate = 1.61803398875
         flop_margin = 1.0 / (num_ee+1)
         threshold = []
-        for e in range(num_ee):
+        for i in range(num_ee):
             if distribution == "pareto":
-                threshold.append(total_flops * (1 - (0.8**(e+1))))
+                threshold.append(total_flops * (1 - (0.8**(i+1))))
             elif distribution == "fine":
-                threshold.append(total_flops * (1 - (0.95**(e+1))))
+                threshold.append(total_flops * (1 - (0.95**(i+1))))
             elif distribution == "linear":
-                threshold.append(total_flops * flop_margin * (e+1))
+                threshold.append(total_flops * flop_margin * (i+1))
             else:
-                threshold.append(total_flops * (gold_rate**(e - num_ee)))
+                threshold.append(total_flops * (gold_rate**(i - num_ee)))
 
         self.stages = nn.ModuleList()
         self.exits = nn.ModuleList()
@@ -161,7 +197,7 @@ class EENet(nn.Module):
 
         planes = self.inplanes
         stride = 1
-        for i in range(len(layer_conf)):
+        for repetition in repetitions:
             downsample = None
             if stride != 1 or self.inplanes != planes * block.expansion:
                 downsample = nn.Sequential(
@@ -173,15 +209,15 @@ class EENet(nn.Module):
             self.inplanes = planes * block.expansion
 
             part = nn.Sequential(*(list(self.stages)+list(layers)))
-            flops, params = get_model_complexity_info(part,
-                    input_shape, print_per_layer_stat=False, as_strings=False)
+            flops, params = get_model_complexity_info(part, input_shape,\
+                            print_per_layer_stat=False, as_strings=False)
             if (stage_id < num_ee and flops >= threshold[stage_id]):
                 self.stages.append(nn.Sequential(*layers))
                 self.exits.append(ExitBlock(self.inplanes, num_classes))
 
                 part = nn.Sequential(*(list(self.stages)+list(self.exits)[-1:]))
-                flops, params = get_model_complexity_info(part,
-                        input_shape, print_per_layer_stat=False, as_strings=False)
+                flops, params = get_model_complexity_info(part, input_shape,\
+                                print_per_layer_stat=False, as_strings=False)
 
                 self.cost.append(flops / total_flops)
                 self.complexity.append((flops, params))
@@ -189,20 +225,20 @@ class EENet(nn.Module):
                 stage_id += 1
 
 
-            for _ in range(1, layer_conf[i]):
+            for _ in range(1, repetition):
                 layers.append(block(self.inplanes, planes))
 
                 part = nn.Sequential(*(list(self.stages)+list(layers)))
-                flops, params = get_model_complexity_info(part,
-                        input_shape, print_per_layer_stat=False, as_strings=False)
+                flops, params = get_model_complexity_info(part, input_shape,\
+                                print_per_layer_stat=False, as_strings=False)
                 if (stage_id < num_ee and flops >= threshold[stage_id]):
                     self.stages.append(nn.Sequential(*layers))
                     self.exits.append(ExitBlock(planes, num_classes))
 
                     part = nn.Sequential(*(list(self.stages)+list(self.exits)[-1:]))
-                    flops, params = get_model_complexity_info(part,
-                            input_shape, print_per_layer_stat=False, as_strings=False)
-                            
+                    flops, params = get_model_complexity_info(part, input_shape,\
+                                    print_per_layer_stat=False, as_strings=False)
+
                     self.cost.append(flops / total_flops)
                     self.complexity.append((flops, params))
                     layers = nn.ModuleList()
@@ -215,10 +251,10 @@ class EENet(nn.Module):
 
         if is_6n2model:
             layers.append(nn.AvgPool2d(8))
-            self.fc = nn.Linear(64 * block.expansion, num_classes)
+            self.fully_connected = nn.Linear(64 * block.expansion, num_classes)
         else:
             layers.append(nn.AdaptiveAvgPool2d((1, 1)))
-            self.fc = nn.Linear(512 * block.expansion, num_classes)
+            self.fully_connected = nn.Linear(512 * block.expansion, num_classes)
 
         self.stages.append(nn.Sequential(*layers))
         self.softmax = nn.Softmax(dim=1)
@@ -226,81 +262,92 @@ class EENet(nn.Module):
         assert len(self.exits) == num_ee, \
             "The desired number of exit blocks is too much for the model capacity."
 
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
+        for module in self.modules():
+            if isinstance(module, nn.Conv2d):
+                nn.init.kaiming_normal_(module.weight, mode='fan_out', nonlinearity='relu')
+            elif isinstance(module, nn.BatchNorm2d):
+                nn.init.constant_(module.weight, 1)
+                nn.init.constant_(module.bias, 0)
 
         # Zero-initialize the last BN in each residual branch,
-        # so that the residual branch starts with zeros, and each residual block behaves like an identity.
+        # so that the residual branch starts with zeros,
+        # and each residual block behaves like an identity.
         # This improves the model by 0.2~0.3% according to https://arxiv.org/abs/1706.02677
         if zero_init_residual:
-            for m in self.modules():
-                if isinstance(m, Bottleneck):
-                    nn.init.constant_(m.bn3.weight, 0)
-                elif isinstance(m, BasicBlock):
-                    nn.init.constant_(m.bn2.weight, 0)
+            for module in self.modules():
+                if isinstance(module, Bottleneck):
+                    nn.init.constant_(module.bn3.weight, 0)
+                elif isinstance(module, BasicBlock):
+                    nn.init.constant_(module.bn2.weight, 0)
 
     def forward(self, x):
-        pred, conf = [], []
+        preds, confs = [], []
 
-        for id, exitblock in enumerate(self.exits):
-            x = self.stages[id](x)
-            y, h = exitblock(x)
-            if (not self.training and h.item() > 0.5):
-                return y, id, self.cost[id]
-            pred.append(y)
-            conf.append(h)
+        for idx, exitblock in enumerate(self.exits):
+            x = self.stages[idx](x)
+            pred, conf = exitblock(x)
+            if not self.training and conf.item() > 0.5:
+                return pred, idx, self.cost[idx]
+            preds.append(pred)
+            confs.append(conf)
 
         x = self.stages[-1](x)
         x = x.view(x.size(0), -1)
-        x = self.fc(x)
-        y = self.softmax(x)
-        if (not self.training):
-            return y, len(self.exits), 1.0
-        pred.append(y)
+        x = self.fully_connected(x)
+        pred = self.softmax(x)
+        if not self.training:
+            return pred, len(self.exits), 1.0
+        preds.append(pred)
 
-        return (pred, conf, self.cost)
+        return (preds, confs, self.cost)
 
 
 def eenet18(**kwargs):
+    """EENet-18 model"""
     model = EENet(False, BasicBlock, 18, [2, 2, 2, 2], **kwargs)
     return model
 
 def eenet34(**kwargs):
+    """EENet-34 model"""
     model = EENet(False, BasicBlock, 34, [3, 4, 6, 3], **kwargs)
     return model
 
 def eenet50(**kwargs):
+    """EENet-50 model"""
     model = EENet(False, Bottleneck, 50, [3, 4, 6, 3], **kwargs)
     return model
 
 def eenet101(**kwargs):
+    """EENet-101 model"""
     model = EENet(False, Bottleneck, 101, [3, 4, 23, 3], **kwargs)
     return model
 
 def eenet152(**kwargs):
+    """EENet-152 model"""
     model = EENet(False, Bottleneck, 152, [3, 8, 36, 3], **kwargs)
     return model
 
 def eenet20(**kwargs):
+    """EENet-20 model"""
     model = EENet(True, BasicBlock, 20, **kwargs)
     return model
 
 def eenet32(**kwargs):
+    """EENet-32 model"""
     model = EENet(True, BasicBlock, 32, **kwargs)
     return model
 
 def eenet44(**kwargs):
+    """EENet-44 model"""
     model = EENet(True, BasicBlock, 44, **kwargs)
     return model
 
 def eenet56(**kwargs):
+    """EENet-56 model"""
     model = EENet(True, BasicBlock, 56, **kwargs)
     return model
 
 def eenet110(**kwargs):
+    """EENet-110 model"""
     model = EENet(True, BasicBlock, 110, **kwargs)
     return model
