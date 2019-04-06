@@ -72,7 +72,7 @@ def initializer():
     elif (args.dataset == 'imagenet'):
         args.num_classes = 1000
         args.input_shape = (3, 224, 224)
-
+    
     elif (args.dataset == 'tiny-imagenet'):
         args.num_classes = 200
         args.input_shape = (3, 64, 64)
