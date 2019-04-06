@@ -29,10 +29,11 @@ def main():
     if args.load_model == '':
         # exit distribution of EENet based models
         if isinstance(model, EENet):
-            for flops, params in  model.complexity:
-                print('flops={}, params={}, rate={:.2f}'.format(flops_to_string(flops),
-                                                                params_to_string(params),
-                                                                flops/model.complexity[-1][0]))
+            for idx, (flops, params) in enumerate(model.complexity):
+                print('exit-block-{}: flops={}, params={}, cost-rate={:.2f}\
+                      '.format(idx, flops_to_string(flops),
+                               params_to_string(params),
+                               flops/model.complexity[-1][0]))
         scheduler = ReduceLROnPlateau(optimizer)
 
         best = {'acc':None}
