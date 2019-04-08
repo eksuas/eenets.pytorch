@@ -181,7 +181,7 @@ def save_model(args, model):
     """
     This method saves the trained model in pt file.
     """
-    directory = '../models/'+args.model
+    directory = '../models/'+args.dataset+'/'+args.model
     if not os.path.exists(directory):
         os.makedirs(directory)
 
