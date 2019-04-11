@@ -12,7 +12,7 @@ class CustomEENet(nn.Module):
     This model (EENet-8) consists of constant two early-exit blocks.
     and it is a very small CNN having 2-8 filters in its layers.
     """
-    def __init__(self, input_shape, starting_filter):
+    def __init__(self, input_shape, num_classes, starting_filter):
         super(CustomEENet, self).__init__()
         channel, _, _ = input_shape
         self.filter = starting_filter
@@ -37,11 +37,11 @@ class CustomEENet(nn.Module):
         self.conv2d_6 = nn.Conv2d(self.filter, self.filter*2, kernel_size=1, stride=2, padding=0)
         self.conv2d_9 = nn.Conv2d(self.filter*2, self.filter*4, kernel_size=1, stride=2, padding=0)
         self.pool = nn.AdaptiveAvgPool2d(1)
-        self.exit0_classifier = self.get_classifier(1)
-        self.exit1_classifier = self.get_classifier(2)
+        self.exit0_classifier = self.get_classifier(num_classes, 1)
+        self.exit1_classifier = self.get_classifier(num_classes, 2)
         self.exit0_confidence = self.get_confidence(1)
         self.exit1_confidence = self.get_confidence(2)
-        self.classifier = self.get_classifier(4)
+        self.classifier = self.get_classifier(num_classes, 4)
 
     def get_basic_block(self, expansion):
         """get basic block as nn.Sequential"""
@@ -54,11 +54,11 @@ class CustomEENet(nn.Module):
             nn.ReLU(inplace=True),
             nn.Conv2d(filter_in*2, filter_in*2, kernel_size=3, stride=1, padding=1))
 
-    def get_classifier(self, expansion):
+    def get_classifier(self, num_classes, expansion):
         """get classifier as nn.Sequential"""
         filter_in = self.filter * expansion
         return nn.Sequential(
-            nn.Linear(filter_in, 10),
+            nn.Linear(filter_in, num_classes),
             nn.Softmax(dim=1))
 
     def get_confidence(self, expansion):
@@ -111,10 +111,10 @@ class CustomEENet(nn.Module):
         return cum_pred, cum_cost
 
 
-def eenet8(input_shape, filters=2, **kwargs):
+def eenet8(input_shape, num_classes, filters=2, **kwargs):
     """EENet-8 model.
 
     This creates an instance of Custom EENet-8 with given starting filter number.
     """
     print("Note that EENet-8 has constant two early-exit blocks no matter num_ee is entered!")
-    return CustomEENet(input_shape, filters)
+    return CustomEENet(input_shape, num_classes, filters)

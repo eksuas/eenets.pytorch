@@ -152,10 +152,10 @@ class EENet(nn.Module):
         if is_6n2model:
             self.inplanes = 16
             repetitions = [(total_layers-2) // 6]*3
-            counterpart_model = ResNet6n2(block, total_layers, num_classes)
+            counterpart_model = ResNet6n2(block, total_layers, num_classes, input_shape)
         else:
             self.inplanes = 64
-            counterpart_model = ResNet(block, repetitions, num_classes)
+            counterpart_model = ResNet(block, repetitions, num_classes, input_shape)
 
         self.stages = nn.ModuleList()
         self.exits = nn.ModuleList()
@@ -167,18 +167,19 @@ class EENet(nn.Module):
         self.num_classes = num_classes
         self.input_shape = input_shape
 
+        channel, _, _ = input_shape
         total_flops, total_params = self.get_complexity(counterpart_model)
         self.set_thresholds(distribution, total_flops)
 
         if is_6n2model:
             self.layers.append(nn.Sequential(
-                nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1, bias=False),
+                nn.Conv2d(channel, 16, kernel_size=3, stride=1, padding=1, bias=False),
                 nn.BatchNorm2d(16),
                 nn.ReLU(inplace=True),
             ))
         else:
             self.layers.append(nn.Sequential(
-                nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False),
+                nn.Conv2d(channel, 64, kernel_size=7, stride=2, padding=3, bias=False),
                 nn.BatchNorm2d(64),
                 nn.ReLU(inplace=True),
                 nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
@@ -210,13 +211,9 @@ class EENet(nn.Module):
         assert len(self.exits) == num_ee, \
             "The desired number of exit blocks is too much for the model capacity."
 
-        if is_6n2model:
-            self.layers.append(nn.AvgPool2d(8))
-            self.fully_connected = nn.Linear(64 * block.expansion, num_classes)
-        else:
-            self.layers.append(nn.AdaptiveAvgPool2d((1, 1)))
-            self.fully_connected = nn.Linear(512 * block.expansion, num_classes)
-
+        planes = 64 if is_6n2model else 512
+        self.layers.append(nn.AdaptiveAvgPool2d(1))
+        self.fully_connected = nn.Linear(planes * block.expansion, num_classes)
         self.stages.append(nn.Sequential(*self.layers))
         self.softmax = nn.Softmax(dim=1)
         self.complexity.append((total_flops, total_params))
@@ -332,27 +329,32 @@ class EENet(nn.Module):
 
 def eenet18(**kwargs):
     """EENet-18 model"""
-    model = EENet(False, BasicBlock, 18, [2, 2, 2, 2], **kwargs)
+    model = EENet(is_6n2model=False, block=BasicBlock, total_layers=18,
+                  repetitions=[2, 2, 2, 2], **kwargs)
     return model
 
 def eenet34(**kwargs):
     """EENet-34 model"""
-    model = EENet(False, BasicBlock, 34, [3, 4, 6, 3], **kwargs)
+    model = EENet(is_6n2model=False, block=BasicBlock, total_layers=34,
+                  repetitions=[3, 4, 6, 3], **kwargs)
     return model
 
 def eenet50(**kwargs):
     """EENet-50 model"""
-    model = EENet(False, Bottleneck, 50, [3, 4, 6, 3], **kwargs)
+    model = EENet(is_6n2model=False, block=Bottleneck, total_layers=50,
+                  repetitions=[3, 4, 6, 3], **kwargs)
     return model
 
 def eenet101(**kwargs):
     """EENet-101 model"""
-    model = EENet(False, Bottleneck, 101, [3, 4, 23, 3], **kwargs)
+    model = EENet(is_6n2model=False, block=Bottleneck, total_layers=101,
+                  repetitions=[3, 4, 23, 3], **kwargs)
     return model
 
 def eenet152(**kwargs):
     """EENet-152 model"""
-    model = EENet(False, Bottleneck, 152, [3, 8, 36, 3], **kwargs)
+    model = EENet(is_6n2model=False, block=Bottleneck, total_layers=152,
+                  repetitions=[3, 8, 36, 3], **kwargs)
     return model
 
 def eenet20(**kwargs):

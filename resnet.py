@@ -125,10 +125,11 @@ class ResNet(nn.Module):
     Returns:
         The nn.Module.
     """
-    def __init__(self, block, layers, num_classes, zero_init_residual=False, **kwargs):
+    def __init__(self, block, layers, num_classes, input_shape, zero_init_residual=False, **kwargs):
         super(ResNet, self).__init__()
+        channel, _, _ = input_shape
         self.inplanes = 64
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
+        self.conv1 = nn.Conv2d(channel, 64, kernel_size=7, stride=2, padding=3,
                                bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU(inplace=True)
@@ -137,7 +138,7 @@ class ResNet(nn.Module):
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
-        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.avgpool = nn.AdaptiveAvgPool2d(1)
         self.fully_connected = nn.Linear(512 * block.expansion, num_classes)
 
         for module in self.modules():
@@ -207,11 +208,12 @@ class ResNet6n2(nn.Module):
     Returns:
         The nn.Module.
     """
-    def __init__(self, block, layers, num_classes, zero_init_residual=False, **kwargs):
+    def __init__(self, block, layers, num_classes, input_shape, zero_init_residual=False, **kwargs):
         super(ResNet6n2, self).__init__()
+        channel, _, _ = input_shape
         layer_blocks = (layers-2) // 6
         self.inplanes = 16
-        self.conv1 = nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1, bias=False)
+        self.conv1 = nn.Conv2d(channel, 16, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(16)
         self.relu = nn.ReLU(inplace=True)
 
@@ -219,7 +221,7 @@ class ResNet6n2(nn.Module):
         self.stage2 = self._make_layer(block, 32, layer_blocks, stride=2)
         self.stage3 = self._make_layer(block, 64, layer_blocks, stride=2)
 
-        self.avgpool = nn.AvgPool2d(8)
+        self.avgpool = nn.AdaptiveAvgPool2d(1)
         self.fully_connected = nn.Linear(64 * block.expansion, num_classes)
 
         for module in self.modules():
