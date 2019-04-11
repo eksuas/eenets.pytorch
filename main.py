@@ -82,16 +82,10 @@ def train(args, model, train_loader, optimizer):
 
         # training settings for EENet based models
         if isinstance(model, (CustomEENet, EENet)):
-            pred, conf, cost = model(data)
-            cum_pred = [None] * args.num_ee + [pred[args.num_ee]]
-            cum_cost = [None] * args.num_ee + [torch.tensor(1.).to(args.device)]
-
-            loss = F.nll_loss(cum_pred[args.num_ee].log(), target) \
-                 + args.lambda_coef * cum_cost[args.num_ee].mean()
-            for i in range(args.num_ee-1, -1, -1):
-                cum_pred[i] = conf[i] * pred[i] + (1-conf[i]) * cum_pred[i+1]
-                cum_cost[i] = conf[i] * cost[i] + (1-conf[i]) * cum_cost[i+1]
-                loss += F.nll_loss(cum_pred[i].log(), target) + args.lambda_coef*cum_cost[i].mean()
+            pred, cost = model(data)
+            loss = F.nll_loss(pred[0].log(), target) + args.lambda_coef*cost[0].mean()
+            for i in range(1, args.num_ee+1):
+                loss += F.nll_loss(pred[i].log(), target) + args.lambda_coef*cost[i].mean()
 
         # training settings for other models
         else:

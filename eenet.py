@@ -1,6 +1,7 @@
 """
 EENet models
 """
+import torch
 from torch import nn
 from flops_counter import get_model_complexity_info
 from resnet import ResNet, ResNet6n2
@@ -319,7 +320,14 @@ class EENet(nn.Module):
             return pred, len(self.exits), 1.0
         preds.append(pred)
 
-        return (preds, confs, self.cost)
+        # Calculate cumulative prediction and cost during training
+        cum_pred = [None] * self.num_ee + [preds[self.num_ee]]
+        cum_cost = [None] * self.num_ee + [torch.tensor(1.0)]
+        for i in range(self.num_ee-1, -1, -1):
+            cum_pred[i] = confs[i] * preds[i] + (1-confs[i]) * cum_pred[i+1]
+            cum_cost[i] = confs[i] * self.cost[i] + (1-confs[i]) * cum_cost[i+1]
+
+        return cum_pred, cum_cost
 
 
 def eenet18(**kwargs):

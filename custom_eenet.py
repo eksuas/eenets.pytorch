@@ -1,6 +1,7 @@
 """
 Custom EENet model
 """
+import torch
 from torch import nn
 
 __all__ = ['CustomEENet', 'eenet8']
@@ -41,7 +42,6 @@ class CustomEENet(nn.Module):
         self.exit0_confidence = self.get_confidence(1)
         self.exit1_confidence = self.get_confidence(2)
         self.classifier = self.get_classifier(4)
-        self.cost = [0.60, 0.97]
 
     def get_basic_block(self, expansion):
         """get basic block as nn.Sequential"""
@@ -69,6 +69,7 @@ class CustomEENet(nn.Module):
             nn.Sigmoid())
 
     def forward(self, x):
+        cost_0, cost_1 = 0.60, 0.97
         x = self.initblock(x)
         residual = self.basicblock1(x)
         x = residual + x
@@ -77,7 +78,7 @@ class CustomEENet(nn.Module):
         pred_0 = self.exit0_classifier(e_x)
         conf_0 = self.exit0_confidence(e_x)
         if (not self.training and conf_0.item() > 0.5):
-            return pred_0, 0, self.cost[0]
+            return pred_0, 0, cost_0
 
         residual = self.basicblock2(x)
         x = self.conv2d_6(x)
@@ -87,7 +88,7 @@ class CustomEENet(nn.Module):
         pred_1 = self.exit1_classifier(e_x)
         conf_1 = self.exit1_confidence(e_x)
         if (not self.training and conf_1.item() > 0.5):
-            return pred_1, 1, self.cost[1]
+            return pred_1, 1, cost_1
 
         residual = self.basicblock3(x)
         x = self.conv2d_9(x)
@@ -99,7 +100,15 @@ class CustomEENet(nn.Module):
         if not self.training:
             return pred_2, 2, 1.0
 
-        return (pred_0, pred_1, pred_2), (conf_0, conf_1), self.cost
+        # Calculate cumulative prediction and cost during training
+        cum_pred = [None, None, pred_2]
+        cum_cost = [None, None, torch.tensor(1.0)]
+        cum_pred[1] = conf_1 * pred_1 + (1-conf_1) * cum_pred[2]
+        cum_cost[1] = conf_1 * cost_1 + (1-conf_1) * cum_cost[2]
+        cum_pred[0] = conf_0 * pred_0 + (1-conf_0) * cum_pred[1]
+        cum_cost[0] = conf_0 * cost_0 + (1-conf_0) * cum_cost[1]
+
+        return cum_pred, cum_cost
 
 
 def eenet8(input_shape, filters=2, **kwargs):
