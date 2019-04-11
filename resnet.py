@@ -125,7 +125,7 @@ class ResNet(nn.Module):
     Returns:
         The nn.Module.
     """
-    def __init__(self, block, layers, num_classes=1000, zero_init_residual=False, **kwargs):
+    def __init__(self, block, layers, num_classes, zero_init_residual=False, **kwargs):
         super(ResNet, self).__init__()
         self.inplanes = 64
         self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
@@ -207,7 +207,7 @@ class ResNet6n2(nn.Module):
     Returns:
         The nn.Module.
     """
-    def __init__(self, block, layers, num_classes=1000, zero_init_residual=False, **kwargs):
+    def __init__(self, block, layers, num_classes, zero_init_residual=False, **kwargs):
         super(ResNet6n2, self).__init__()
         layer_blocks = (layers-2) // 6
         self.inplanes = 16
