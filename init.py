@@ -93,6 +93,9 @@ def initializer():
         args.num_classes = 200
         args.input_shape = (3, 64, 64)
 
+    if args.model == 'eenet8':
+        args.num_ee = 2
+
     torch.manual_seed(args.seed)
     model_object = _get_object(args.model)
 
