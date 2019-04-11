@@ -30,16 +30,16 @@ def main():
         # exit distribution of EENet based models
         if isinstance(model, EENet):
             for idx, (flops, params) in enumerate(model.complexity):
-                print('exit-block-{}: flops={}, params={}, cost-rate={:.2f}\
-                      '.format(idx, flops_to_string(flops),
-                               params_to_string(params),
-                               flops/model.complexity[-1][0]))
+                print('exit-block-{}: flops={}, params={}, cost-rate={:.2f}'
+                      .format(idx, flops_to_string(flops),
+                              params_to_string(params),
+                              flops/model.complexity[-1][0]))
         scheduler = ReduceLROnPlateau(optimizer)
 
         best = {'acc':None}
         history = {'acc':[], 'loss':[], 'cost':[], 'time':[]}
         for epoch in range(1, args.epochs + 1):
-            print('{:2d}:'.format(epoch), end="")
+            print('{:3d}: '.format(epoch), end="")
 
             if args.adjust_lr:
                 adjust_learning_rate(model, optimizer, epoch)
@@ -52,8 +52,8 @@ def main():
             if best['acc'] is None or result['acc'].avg > best['acc'].avg:
                 best = result
 
-        print('The best avg loss: {:.4f}, avg cost:{:.4f}, avg acc:{:.2f}%\
-              '.format(best['loss'].avg, best['cost'].avg*100., best['acc'].avg*100.))
+        print('The best test avg loss: {:.4f}, avg cost:{:.4f}, avg acc:{:.2f}%'
+              .format(best['loss'].avg, best['cost'].avg*100., best['acc'].avg*100.))
 
         if args.save_model:
             save_model(args, model)
@@ -74,6 +74,7 @@ def train(args, model, train_loader, optimizer):
 
     This trains the model and prints the results of each epochs.
     """
+    losses = AverageMeter()
     model.train()
     for data, target in train_loader:
         data, target = data.to(args.device), target.to(args.device, dtype=torch.int64)
@@ -82,9 +83,8 @@ def train(args, model, train_loader, optimizer):
         # training settings for EENet based models
         if isinstance(model, (CustomEENet, EENet)):
             pred, conf, cost = model(data)
-            cum_pred = [torch.tensor(0.).to(args.device)]*(args.num_ee) + [pred[args.num_ee]]
-            cum_cost = [torch.tensor(0.).to(args.device)]*(args.num_ee) \
-                     + [torch.tensor(1.).to(args.device)]
+            cum_pred = [None] * args.num_ee + [pred[args.num_ee]]
+            cum_cost = [None] * args.num_ee + [torch.tensor(1.).to(args.device)]
 
             loss = F.nll_loss(cum_pred[args.num_ee].log(), target) \
                  + args.lambda_coef * cum_cost[args.num_ee].mean()
@@ -99,8 +99,12 @@ def train(args, model, train_loader, optimizer):
             criterion = nn.CrossEntropyLoss()
             loss = criterion(output, target)
 
+        losses.update(loss)
         loss.backward()
         optimizer.step()
+
+    # print the training results of epoch
+    print('Train avg loss: {:.4f}'.format(losses.avg))
 
 
 def validate(args, model, val_loader):
@@ -146,9 +150,9 @@ def validate(args, model, val_loader):
             pred = output.max(1, keepdim=True)[1]
             batch['acc'].update(pred.eq(target.view_as(pred)).sum().item())
 
-    # print the results of epoch
-    print('Test set avg time: {:.4f}msec; avg loss: {:.4f}; avg acc:{:.2f}%\
-          '.format(batch['time'].avg*100., batch['loss'].avg, batch['acc'].avg*100.))
+    # print the validation results of epoch
+    print('     Test avg time: {:.4f}msec; avg loss: {:.4f}; avg acc:{:.2f}%'
+          .format(batch['time'].avg*100., batch['loss'].avg, batch['acc'].avg*100.))
 
     # detail print for EENet based models
     if isinstance(model, (CustomEENet, EENet)):
