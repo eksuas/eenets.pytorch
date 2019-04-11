@@ -99,23 +99,19 @@ def initializer():
     torch.manual_seed(args.seed)
     model_object = _get_object(args.model)
 
-    # optimizer configurations
-    optimizer_object = _get_object(args.optimizer)
-    argspec = inspect.getfullargspec(optimizer_object)
-    optimizer_args = {}
-    kwargs = vars(args)
-    for key, value in kwargs.items():
-        if key in argspec.args:
-            optimizer_args[key] = value
-
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     args.device = torch.device("cuda" if use_cuda else "cpu")
+    kwargs = vars(args)
+
+    # optimizer configurations
+    optimizer_object = _get_object(args.optimizer)
+    keys = kwargs.keys() & inspect.getfullargspec(optimizer_object).args
+    optimizer_args = {k:kwargs[k] for k in keys}
 
     if args.load_model != '':
         model = torch.load(args.load_model).to(args.device)
         #model = nn.DataParallel(torch.load(args.load_model)).to(device)
     else:
-        kwargs = vars(args)
         model = model_object(**kwargs).to(args.device)
         optimizer = optimizer_object(model.parameters(), **optimizer_args)
 
