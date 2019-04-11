@@ -145,50 +145,38 @@ class EENet(nn.Module):
     Returns:
         The nn.Module.
     """
-    def __init__(self, is_6n2model, block, total_layers, repetitions=None, num_ee=3,
-                 distribution="pareto", num_classes=1000, zero_init_residual=False,
-                 input_shape=(3, 32, 32), **kwargs):
+    def __init__(self, is_6n2model, block, total_layers, num_ee, distribution, num_classes,
+                 input_shape, repetitions=None, zero_init_residual=False, **kwargs):
         super(EENet, self).__init__()
-        self.inplanes = 64
         if is_6n2model:
             self.inplanes = 16
             repetitions = [(total_layers-2) // 6]*3
-
-
-
-        total_flops, total_params = get_model_complexity_info(\
-                ResNet6n2(block, total_layers) if is_6n2model else ResNet(block, repetitions),
-                #eval("resnet"+str(total_layers)+"(num_classes="+str(num_classes)+")"),
-                input_shape, print_per_layer_stat=False, as_strings=False)
-
-        gold_rate = 1.61803398875
-        flop_margin = 1.0 / (num_ee+1)
-        threshold = []
-        for i in range(num_ee):
-            if distribution == "pareto":
-                threshold.append(total_flops * (1 - (0.8**(i+1))))
-            elif distribution == "fine":
-                threshold.append(total_flops * (1 - (0.95**(i+1))))
-            elif distribution == "linear":
-                threshold.append(total_flops * flop_margin * (i+1))
-            else:
-                threshold.append(total_flops * (gold_rate**(i - num_ee)))
+            counterpart_model = ResNet6n2(block, total_layers, num_classes)
+        else:
+            self.inplanes = 64
+            counterpart_model = ResNet(block, repetitions, num_classes)
 
         self.stages = nn.ModuleList()
         self.exits = nn.ModuleList()
         self.cost = []
         self.complexity = []
-        layers = nn.ModuleList()
-        stage_id = 0
+        self.layers = nn.ModuleList()
+        self.stage_id = 0
+        self.num_ee = num_ee
+        self.num_classes = num_classes
+        self.input_shape = input_shape
+
+        total_flops, total_params = self.get_complexity(counterpart_model)
+        self.set_thresholds(distribution, total_flops)
 
         if is_6n2model:
-            layers.append(nn.Sequential(
+            self.layers.append(nn.Sequential(
                 nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1, bias=False),
                 nn.BatchNorm2d(16),
                 nn.ReLU(inplace=True),
             ))
         else:
-            layers.append(nn.Sequential(
+            self.layers.append(nn.Sequential(
                 nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False),
                 nn.BatchNorm2d(64),
                 nn.ReLU(inplace=True),
@@ -205,80 +193,112 @@ class EENet(nn.Module):
                     nn.BatchNorm2d(planes * block.expansion),
                 )
 
-            layers.append(block(self.inplanes, planes, stride, downsample))
+            self.layers.append(block(self.inplanes, planes, stride, downsample))
             self.inplanes = planes * block.expansion
-
-            part = nn.Sequential(*(list(self.stages)+list(layers)))
-            flops, params = get_model_complexity_info(part, input_shape,\
-                            print_per_layer_stat=False, as_strings=False)
-            if (stage_id < num_ee and flops >= threshold[stage_id]):
-                self.stages.append(nn.Sequential(*layers))
-                self.exits.append(ExitBlock(self.inplanes, num_classes))
-
-                part = nn.Sequential(*(list(self.stages)+list(self.exits)[-1:]))
-                flops, params = get_model_complexity_info(part, input_shape,\
-                                print_per_layer_stat=False, as_strings=False)
-
-                self.cost.append(flops / total_flops)
-                self.complexity.append((flops, params))
-                layers = nn.ModuleList()
-                stage_id += 1
-
+            if self.is_suitable_for_exit():
+                self.add_exit_block(total_flops)
 
             for _ in range(1, repetition):
-                layers.append(block(self.inplanes, planes))
-
-                part = nn.Sequential(*(list(self.stages)+list(layers)))
-                flops, params = get_model_complexity_info(part, input_shape,\
-                                print_per_layer_stat=False, as_strings=False)
-                if (stage_id < num_ee and flops >= threshold[stage_id]):
-                    self.stages.append(nn.Sequential(*layers))
-                    self.exits.append(ExitBlock(planes, num_classes))
-
-                    part = nn.Sequential(*(list(self.stages)+list(self.exits)[-1:]))
-                    flops, params = get_model_complexity_info(part, input_shape,\
-                                    print_per_layer_stat=False, as_strings=False)
-
-                    self.cost.append(flops / total_flops)
-                    self.complexity.append((flops, params))
-                    layers = nn.ModuleList()
-                    stage_id += 1
+                self.layers.append(block(self.inplanes, planes))
+                if self.is_suitable_for_exit():
+                    self.add_exit_block(total_flops)
 
             planes *= 2
             stride = 2
 
-        self.complexity.append((total_flops, total_params))
-
-        if is_6n2model:
-            layers.append(nn.AvgPool2d(8))
-            self.fully_connected = nn.Linear(64 * block.expansion, num_classes)
-        else:
-            layers.append(nn.AdaptiveAvgPool2d((1, 1)))
-            self.fully_connected = nn.Linear(512 * block.expansion, num_classes)
-
-        self.stages.append(nn.Sequential(*layers))
-        self.softmax = nn.Softmax(dim=1)
-
         assert len(self.exits) == num_ee, \
             "The desired number of exit blocks is too much for the model capacity."
 
+        if is_6n2model:
+            self.layers.append(nn.AvgPool2d(8))
+            self.fully_connected = nn.Linear(64 * block.expansion, num_classes)
+        else:
+            self.layers.append(nn.AdaptiveAvgPool2d((1, 1)))
+            self.fully_connected = nn.Linear(512 * block.expansion, num_classes)
+
+        self.stages.append(nn.Sequential(*self.layers))
+        self.softmax = nn.Softmax(dim=1)
+        self.complexity.append((total_flops, total_params))
+        self.parameter_initializer(zero_init_residual)
+
+
+    def get_complexity(self, model):
+        """get model complexity in terms of FLOPs and the number of parameters"""
+        flops, params = get_model_complexity_info(model, self.input_shape,\
+                        print_per_layer_stat=False, as_strings=False)
+        return flops, params
+
+
+    def add_exit_block(self, total_flops):
+        """add early-exit blocks to the model
+
+        Argument is
+        * total_flops:   the total FLOPs of the counterpart model.
+
+        This add exit blocks to suitable intermediate position in the model,
+        and calculates the FLOPs and parameters until that exit block.
+        These complexity values are saved in the self.cost and self.complexity.
+        """
+        self.stages.append(nn.Sequential(*self.layers))
+        self.exits.append(ExitBlock(self.inplanes, self.num_classes))
+        intermediate_model = nn.Sequential(*(list(self.stages)+list(self.exits)[-1:]))
+        flops, params = self.get_complexity(intermediate_model)
+        self.cost.append(flops / total_flops)
+        self.complexity.append((flops, params))
+        self.layers = nn.ModuleList()
+        self.stage_id += 1
+
+
+    def set_thresholds(self, distribution, total_flops):
+        """set thresholds
+
+        Arguments are
+        * distribution:  distribution method of the early-exit blocks.
+        * total_flops:   the total FLOPs of the counterpart model.
+
+        This set FLOPs thresholds for each early-exit blocks according to the distribution method.
+        """
+        gold_rate = 1.61803398875
+        flop_margin = 1.0 / (self.num_ee+1)
+        self.threshold = []
+        for i in range(self.num_ee):
+            if distribution == "pareto":
+                self.threshold.append(total_flops * (1 - (0.8**(i+1))))
+            elif distribution == "fine":
+                self.threshold.append(total_flops * (1 - (0.95**(i+1))))
+            elif distribution == "linear":
+                self.threshold.append(total_flops * flop_margin * (i+1))
+            else:
+                self.threshold.append(total_flops * (gold_rate**(i - self.num_ee)))
+
+
+    def is_suitable_for_exit(self):
+        """is the position suitable to locate an early-exit block"""
+        intermediate_model = nn.Sequential(*(list(self.stages)+list(self.layers)))
+        flops, _ = self.get_complexity(intermediate_model)
+        return self.stage_id < self.num_ee and flops >= self.threshold[self.stage_id]
+
+
+    def parameter_initializer(self, zero_init_residual):
+        """
+        Zero-initialize the last BN in each residual branch,
+        so that the residual branch starts with zeros,
+        and each residual block behaves like an identity.
+        This improves the model by 0.2~0.3% according to https://arxiv.org/abs/1706.02677
+        """
         for module in self.modules():
             if isinstance(module, nn.Conv2d):
                 nn.init.kaiming_normal_(module.weight, mode='fan_out', nonlinearity='relu')
             elif isinstance(module, nn.BatchNorm2d):
                 nn.init.constant_(module.weight, 1)
                 nn.init.constant_(module.bias, 0)
-
-        # Zero-initialize the last BN in each residual branch,
-        # so that the residual branch starts with zeros,
-        # and each residual block behaves like an identity.
-        # This improves the model by 0.2~0.3% according to https://arxiv.org/abs/1706.02677
         if zero_init_residual:
             for module in self.modules():
                 if isinstance(module, Bottleneck):
                     nn.init.constant_(module.bn3.weight, 0)
                 elif isinstance(module, BasicBlock):
                     nn.init.constant_(module.bn2.weight, 0)
+
 
     def forward(self, x):
         preds, confs = [], []
