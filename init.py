@@ -45,7 +45,9 @@ def initializer():
                                           status')
     parser.add_argument('--save-model',   action='store_true', default=False,
                                           help='save current model')
-    parser.add_argument('--load-model',   type=str, default='',
+    parser.add_argument('--save-train',   action='store_true', default=False,
+                                          help='save current model during training')
+    parser.add_argument('--load-model',   type=str, default=None,
                                           help='the path for loading and evaluating model')
     parser.add_argument('--filters',      type=int,   default=2,
                                           help='initial filter number of basic eenets (default: 2)')
@@ -97,23 +99,22 @@ def initializer():
         args.num_ee = 2
 
     torch.manual_seed(args.seed)
-    model_object = _get_object(args.model)
-
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     args.device = torch.device("cuda" if use_cuda else "cpu")
+
+    # model configurations
     kwargs = vars(args)
+    if args.load_model is None:
+        model_object = _get_object(args.model)
+        model = model_object(**kwargs).to(args.device)
+    else:
+        model = torch.load(args.load_model).to(args.device)
 
     # optimizer configurations
     optimizer_object = _get_object(args.optimizer)
     keys = kwargs.keys() & inspect.getfullargspec(optimizer_object).args
     optimizer_args = {k:kwargs[k] for k in keys}
-
-    if args.load_model != '':
-        model = torch.load(args.load_model).to(args.device)
-        #model = nn.DataParallel(torch.load(args.load_model)).to(device)
-    else:
-        model = model_object(**kwargs).to(args.device)
-        optimizer = optimizer_object(model.parameters(), **optimizer_args)
+    optimizer = optimizer_object(model.parameters(), **optimizer_args)
 
     return model, optimizer, args
 
