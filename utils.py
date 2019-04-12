@@ -177,20 +177,29 @@ def display_examples(args, model, dataset):
             fig.savefig("Results/exitblock"+str(idx)+".png")
 
 
-def save_model(args, model):
+def save_model(args, model, is_training):
     """
     This method saves the trained model in pt file.
     """
     directory = '../models/'+args.dataset+'/'+args.model
+    if isinstance(model, (EENet, CustomEENet)):
+        directory += '/ee'+str(args.num_ee)+'_'+args.distribution
+
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    version = 1
-    while os.path.exists(directory+'/v'+str(version)+'.pt'):
-        version += 1
-
-    filename = directory+'/v'+str(version)+'.pt'
-    torch.save(model, filename)
+    filename = directory+'/model'
+    if is_training:
+        version = 1
+        while os.path.exists(filename+'.v'+str(version)+'.pt'):
+            version += 1
+        filename += '.v'+str(version)
+    else:
+        train_files = os.listdir(directory)
+        for train_file in train_files:
+            if train_file.endswith(".pt"):
+                os.remove(os.path.join(directory, train_file))
+    torch.save(model, filename+'.pt')
 
 
 def adjust_learning_rate(model, optimizer, epoch):
