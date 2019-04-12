@@ -26,38 +26,40 @@ def main():
     model, optimizer, args = initializer()
     train_loader, test_loader = load_dataset(args)
 
-    if args.load_model == '':
-        # exit distribution of EENet based models
-        if isinstance(model, EENet):
-            for idx, (flops, params) in enumerate(model.complexity):
-                print('exit-block-{}: flops={}, params={}, cost-rate={:.2f}'
-                      .format(idx, flops_to_string(flops),
-                              params_to_string(params),
-                              flops/model.complexity[-1][0]))
-        scheduler = ReduceLROnPlateau(optimizer)
+    # exit distribution of EENet based models
+    if isinstance(model, EENet):
+        total_flops = model.complexity[-1][0]
+        for i, (flops, params) in enumerate(model.complexity):
+            print('exit-block-{}: flops={}, params={}, cost-rate={:.2f}'
+                  .format(i, flops_to_string(flops), params_to_string(params), flops/total_flops))
 
-        best = {'acc':None}
-        history = {'acc':[], 'loss':[], 'cost':[], 'time':[]}
-        for epoch in range(1, args.epochs + 1):
-            print('{:3d}: '.format(epoch), end="")
+    scheduler = ReduceLROnPlateau(optimizer)
 
-            if args.adjust_lr:
-                adjust_learning_rate(model, optimizer, epoch)
+    best = {'acc':None}
+    history = {'acc':[], 'loss':[], 'cost':[], 'time':[]}
+    for epoch in range(1, args.epochs + 1):
+        print('{:3d}: '.format(epoch), end="")
 
-            train(args, model, train_loader, optimizer)
-            result = validate(args, model, test_loader)
-            for key, value in result.items():
-                history[key].append(value)
-            scheduler.step(result['loss'].avg)
-            if best['acc'] is None or result['acc'].avg > best['acc'].avg:
-                best = result
+        if args.adjust_lr:
+            adjust_learning_rate(model, optimizer, epoch)
 
-        print('The best test avg loss: {:.4f}, avg cost:{:.4f}, avg acc:{:.2f}%'
-              .format(best['loss'].avg, best['cost'].avg*100., best['acc'].avg*100.))
+        train(args, model, train_loader, optimizer)
+        result = validate(args, model, test_loader)
+        for key, value in result.items():
+            history[key].append(value)
+        scheduler.step(result['loss'].avg)
+        if best['acc'] is None or result['acc'].avg > best['acc'].avg:
+            best = result
 
-        if args.save_model:
-            save_model(args, model)
+        if args.save_train:
+            save_model(args, model, is_training=(epoch != args.epochs))
 
+    print('The best test avg loss: {:.4f}, avg cost:{:.4f}, avg acc:{:.2f}%'
+          .format(best['loss'].avg, best['cost'].avg*100., best['acc'].avg*100.))
+
+    if args.save_model:
+        save_model(args, model, is_training=False)
+        
     #plot_charts(history, args)
     #display_examples(args, model, trainset)
 
