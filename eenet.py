@@ -109,7 +109,7 @@ class ExitBlock(nn.Module):
     def __init__(self, inplanes, num_classes):
         super(ExitBlock, self).__init__()
         self.inplanes = inplanes
-        self.pool = nn.AdaptiveAvgPool2d((1, 1))
+        self.pool = nn.AdaptiveAvgPool2d(1)
         self.confidence = nn.Sequential(
             nn.Linear(inplanes, 1),
             nn.Sigmoid(),
