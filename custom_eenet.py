@@ -69,7 +69,7 @@ class CustomEENet(nn.Module):
             nn.Sigmoid())
 
     def forward(self, x):
-        cost_0, cost_1 = 0.60, 0.97
+        cost_0, cost_1 = 0.08, 0.26
         x = self.initblock(x)
         residual = self.basicblock1(x)
         x = residual + x
