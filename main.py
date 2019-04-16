@@ -44,12 +44,13 @@ def main():
             adjust_learning_rate(model, optimizer, epoch)
 
         train(args, model, train_loader, optimizer)
-        result = validate(args, model, test_loader)
-        for key, value in result.items():
-            history[key].append(value)
-        scheduler.step(result['loss'].avg)
-        if best['acc'] is None or result['acc'].avg > best['acc'].avg:
-            best = result
+        if epoch % args.log_interval == 0:
+            result = validate(args, model, test_loader)
+            for key, value in result.items():
+                history[key].append(value)
+            scheduler.step(result['loss'].avg)
+            if best['acc'] is None or result['acc'].avg > best['acc'].avg:
+                best = result
 
         if args.save_train:
             save_model(args, model, is_training=(epoch != args.epochs))
@@ -59,7 +60,8 @@ def main():
 
     if args.save_model:
         save_model(args, model, is_training=False)
-        
+
+    #history['epochs'] = range(args.log_interval, args.epochs + 1, args.log_interval)
     #plot_charts(history, args)
     #display_examples(args, model, trainset)
 
