@@ -22,8 +22,8 @@ def initializer():
     """
     #pylint: disable=C0326, C0330
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
-    parser.add_argument('--batch-size',   type=int,   default=256, metavar='N',
-                                          help='input batch size for training (default: 256)')
+    parser.add_argument('--batch-size',   type=int,   default=32, metavar='N',
+                                          help='input batch size for training (default: 32)')
     parser.add_argument('--test-batch',   type=int,   default=1, metavar='N',
                                           help='input batch size for testing (default: 1)')
     parser.add_argument('--epochs',       type=int,   default=10, metavar='N',
@@ -40,9 +40,9 @@ def initializer():
                                           help='disables CUDA training')
     parser.add_argument('--seed',         type=int,   default=1, metavar='S',
                                           help='random seed (default: 1)')
-    parser.add_argument('--log-interval', type=int,   default=10, metavar='N',
-                                          help='how many batches to wait before logging training \
-                                          status')
+    parser.add_argument('--log-interval', type=int,   default=1, metavar='N',
+                                          help='how many epochs to wait before logging training \
+                                          status (default: 1)')
     parser.add_argument('--save-model',   action='store_true', default=False,
                                           help='save current model')
     parser.add_argument('--save-train',   action='store_true', default=False,
