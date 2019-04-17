@@ -41,8 +41,8 @@ def initializer():
     parser.add_argument('--seed',         type=int,   default=1, metavar='S',
                                           help='random seed (default: 1)')
     parser.add_argument('--log-interval', type=int,   default=1, metavar='N',
-                                          help='how many epochs to wait before logging training \
-                                          status (default: 1)')
+                                          help='how many epochs to wait before logging training '+\
+                                           'status (default: 1)')
     parser.add_argument('--save-model',   action='store_true', default=False,
                                           help='save current model')
     parser.add_argument('--save-train',   action='store_true', default=False,
@@ -52,8 +52,8 @@ def initializer():
     parser.add_argument('--filters',      type=int,   default=2,
                                           help='initial filter number of basic eenets (default: 2)')
     parser.add_argument('--lambda-coef',  type=float, default=1.0,
-                                          help='lambda to arrange the balance between accuracy and \
-                                          cost (default: 1.0)')
+                                          help='lambda to arrange the balance between accuracy '+\
+                                           'and cost (default: 1.0)')
     parser.add_argument('--num-ee',       type=int,   default=2,
                                           help='the number of early exit blocks (default: 3)')
     parser.add_argument('--filename',     type=str,   default='modelChart',
@@ -71,6 +71,9 @@ def initializer():
     parser.add_argument('--distribution', type=str,   default='fine',
                                           choices=['gold_ratio', 'pareto', 'fine', 'linear'],
                                           help='distribution method of exit blocks (default: fine)')
+    parser.add_argument('--exit-type',    type=str,   default='pool', choices=['plain', 'pool',
+                                           'bnpool'],
+                                          help='Exit block type.')
     parser.add_argument('--model',        type=str,   default='eenet20',
                                           choices=['eenet8',
                                            'eenet18', 'eenet34', 'eenet50', 'eenet101', 'eenet152',

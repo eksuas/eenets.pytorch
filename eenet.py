@@ -106,21 +106,30 @@ class ExitBlock(nn.Module):
 
     This allows the model to terminate early when it is confident for classification.
     """
-    def __init__(self, inplanes, num_classes):
+    def __init__(self, inplanes, num_classes, input_shape, type):
         super(ExitBlock, self).__init__()
-        self.inplanes = inplanes
-        self.pool = nn.AdaptiveAvgPool2d(1)
+        _, width, height = input_shape
+        self.expansion = width * height if type == 'plain' else 1
+
+        self.layers = []
+        if type == 'bnpool':
+            self.layers.append(nn.BatchNorm2d(inplanes))
+        if type != 'plain':
+            self.layers.append(nn.AdaptiveAvgPool2d(1))
+        
         self.confidence = nn.Sequential(
-            nn.Linear(inplanes, 1),
+            nn.Linear(inplanes * self.expansion, 1),
             nn.Sigmoid(),
         )
         self.classifier = nn.Sequential(
-            nn.Linear(inplanes, num_classes),
+            nn.Linear(inplanes * self.expansion, num_classes),
             nn.Softmax(dim=1),
         )
 
     def forward(self, x):
-        x = self.pool(x).view(-1, self.inplanes)
+        for layer in self.layers:
+            x = layer(x)
+        x = x.view(x.size(0), -1)
         conf = self.confidence(x)
         pred = self.classifier(x)
         return pred, conf
@@ -147,7 +156,7 @@ class EENet(nn.Module):
         The nn.Module.
     """
     def __init__(self, is_6n2model, block, total_layers, num_ee, distribution, num_classes,
-                 input_shape, repetitions=None, zero_init_residual=False, **kwargs):
+                 input_shape, exit_type, repetitions=None, zero_init_residual=False, **kwargs):
         super(EENet, self).__init__()
         if is_6n2model:
             self.inplanes = 16
@@ -198,12 +207,12 @@ class EENet(nn.Module):
             self.layers.append(block(self.inplanes, planes, stride, downsample))
             self.inplanes = planes * block.expansion
             if self.is_suitable_for_exit():
-                self.add_exit_block(total_flops)
+                self.add_exit_block(exit_type, total_flops)
 
             for _ in range(1, repetition):
                 self.layers.append(block(self.inplanes, planes))
                 if self.is_suitable_for_exit():
-                    self.add_exit_block(total_flops)
+                    self.add_exit_block(exit_type, total_flops)
 
             planes *= 2
             stride = 2
@@ -227,7 +236,7 @@ class EENet(nn.Module):
         return flops, params
 
 
-    def add_exit_block(self, total_flops):
+    def add_exit_block(self, exit_type, total_flops):
         """add early-exit blocks to the model
 
         Argument is
@@ -238,7 +247,7 @@ class EENet(nn.Module):
         These complexity values are saved in the self.cost and self.complexity.
         """
         self.stages.append(nn.Sequential(*self.layers))
-        self.exits.append(ExitBlock(self.inplanes, self.num_classes))
+        self.exits.append(ExitBlock(self.inplanes, self.num_classes, self.input_shape, exit_type))
         intermediate_model = nn.Sequential(*(list(self.stages)+list(self.exits)[-1:]))
         flops, params = self.get_complexity(intermediate_model)
         self.cost.append(flops / total_flops)
