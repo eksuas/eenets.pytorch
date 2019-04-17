@@ -6,7 +6,7 @@ import time
 import torch
 import torch.nn.functional as F
 from torch import nn
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+#from torch.optim.lr_scheduler import ReduceLROnPlateau
 from flops_counter import flops_to_string, params_to_string
 from utils import AverageMeter
 from utils import load_dataset
@@ -33,7 +33,7 @@ def main():
             print('exit-block-{}: flops={}, params={}, cost-rate={:.2f}'
                   .format(i, flops_to_string(flops), params_to_string(params), flops/total_flops))
 
-    scheduler = ReduceLROnPlateau(optimizer)
+    #scheduler = ReduceLROnPlateau(optimizer)
 
     best = {'acc':None}
     history = {'acc':[], 'loss':[], 'cost':[], 'time':[]}
@@ -48,7 +48,7 @@ def main():
             result = validate(args, model, test_loader)
             for key, value in result.items():
                 history[key].append(value)
-            scheduler.step(result['loss'].avg)
+            #scheduler.step(result['loss'].avg)
             if best['acc'] is None or result['acc'].avg > best['acc'].avg:
                 best = result
 

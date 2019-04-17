@@ -116,7 +116,7 @@ class ExitBlock(nn.Module):
             self.layers.append(nn.BatchNorm2d(inplanes))
         if type != 'plain':
             self.layers.append(nn.AdaptiveAvgPool2d(1))
-        
+
         self.confidence = nn.Sequential(
             nn.Linear(inplanes * self.expansion, 1),
             nn.Sigmoid(),
