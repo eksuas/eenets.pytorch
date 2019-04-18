@@ -3,30 +3,13 @@ utilities are defined in this code.
 """
 import os
 import torch
+import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.ticker import MaxNLocator
+from scipy import stats
 from torchvision import datasets, transforms
 from custom_eenet import CustomEENet
 from eenet import EENet
-
-class AverageMeter():
-    """Computes and stores the average and current value"""
-    def __init__(self):
-        self.reset()
-
-    def reset(self):
-        """reset the meter"""
-        self.val = 0.0
-        self.avg = 0.0
-        self.sum = 0.0
-        self.count = 0.0
-
-    def update(self, val, repetition=1):
-        """update the meter"""
-        self.val = val
-        self.sum += val * repetition
-        self.count += repetition
-        self.avg = self.sum / self.count
 
 
 def load_dataset(args):
@@ -129,30 +112,92 @@ def create_val_img_folder():
             os.rename(os.path.join(img_dir, img), os.path.join(newpath, img))
 
 
-def plot_charts(history, args):
+def plot_history(args, history):
+    """plot figures
+
+    Argument is
+    * history:  history to be plotted.
+
+    This plots the history in a chart.
     """
-    This method plots the history charts.
+    directory = '../results/'+args.dataset+'/'+args.model
+    if args.num_ee > 0:
+        directory += '/ee'+str(args.num_ee)+'_'+args.distribution
+
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    epochs = range(args.log_interval, args.epochs+1, args.log_interval)
+    data = pd.DataFrame(history)
+
+    hist = data[['train_loss', 'val_loss']]
+    title = 'loss of '+args.model+' on '+args.dataset
+    xtick = epochs
+    labels = ('epochs', 'loss')
+    filename = directory+'/loss_figure.png'
+    plot_chart(hist, title, xtick, labels, filename)
+
+    hist = data[['acc', 'cost']]
+    title = 'val. accuracy and cost rate of '+args.model+' on '+args.dataset
+    xtick = epochs
+    labels = ('epochs', 'percent')
+    filename = directory+'/acc_cost_figure.png'
+    plot_chart(hist, title, xtick, labels, filename)
+
+    if args.model != 'eenet8':
+        hist = data[['acc']]
+        title = 'val. accuracy vs flops of '+args.model+' on '+args.dataset
+        xtick = [np.mean(x) for x in data['flop']]
+        labels = ('flops', 'accuracy')
+        filename = directory+'/acc_vs_flop_figure.png'
+        plot_chart(hist, title, xtick, labels, filename)
+
+
+def plot_chart(hist, title, xtick, labels, filename):
+    """draw chart
+
+    Arguments are
+    * hist:      history to be plotted.
+    * title:     title of the chart.
+    * xtick:     array that includes the xtick values.
+    * labels:    labels of x and y axises.
+    * filename:  filename of the chart.
+
+    This plots the history in a chart.
     """
-    fig, axs = plt.subplots(1, 1)
-    plt.title('The EENet-8 model trained with the '+args.filename+' loss')
+    plt.title(title)
+    plt.xticks(xtick)
     legend = []
-    for key, value in history.items():
-        plt.plot(value)
+    for key in hist.keys():
         legend.append(key)
-    plt.ylabel('percent')
-    plt.xlabel('epochs')
-    plt.legend(legend, loc='best')
-    #plt.xticks([i for i in range(args.epochs)], [str(i+1) for i in range(args.epochs)])
-    axs.xaxis.set_major_locator(MaxNLocator(integer=True))
-    fig.savefig('Results/'+args.filename+'.png')
+        ytick = [np.mean(y) for y in hist[key]]
+        error = [stats.sem(y) for y in hist[key]]
+        plt.errorbar(xtick, ytick, yerr=error, fmt='-o')
+        #plt.plot(xtick, ytick)
+    xlabel, ylabel = labels
+    plt.ylabel(ylabel)
+    plt.xlabel(xlabel)
+    plt.legend(legend, loc="best")
+    plt.savefig(filename)
     plt.clf()
+    print('The figure is plotted under \'{}\''.format(filename))
 
 
 def display_examples(args, model, dataset):
-    """
+    """display examples
+
+    Arguments are
+    * model:    model object.
+    * dataset:  dataset loader object.
+
     This method shows the correctly predicted sample of images from dataset.
     Produced table shows the early exit block which classifies that samples.
+
     """
+    directory = '../results/'
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
     images = [[[] for j in range(10)] for i in range(args.num_ee+1)]
     model.eval()
     with torch.no_grad():
@@ -174,11 +219,16 @@ def display_examples(args, model, dataset):
                 for example in range(len(images[idx][class_id])):
                     axarr[class_id, example].imshow(
                         dataset[images[idx][class_id][example]][0].view(args.input_shape[1:]))
-            fig.savefig("Results/exitblock"+str(idx)+".png")
+            fig.savefig(directory+"exitblock"+str(idx)+".png")
 
 
-def save_model(args, model, is_training):
-    """
+def save_model(args, model, epoch, best=False):
+    """save model
+
+    Arguments are
+    * model:    model object.
+    * best:     version number of the best model object.
+
     This method saves the trained model in pt file.
     """
     directory = '../models/'+args.dataset+'/'+args.model
@@ -189,21 +239,23 @@ def save_model(args, model, is_training):
         os.makedirs(directory)
 
     filename = directory+'/model'
-    if is_training:
-        version = 1
-        while os.path.exists(filename+'.v'+str(version)+'.pt'):
-            version += 1
-        filename += '.v'+str(version)
+    if best is False:
+        torch.save(model, filename+'.v'+str(epoch)+'.pt')
     else:
         train_files = os.listdir(directory)
         for train_file in train_files:
-            if train_file.endswith(".pt"):
+            if not train_file.endswith('.v'+str(epoch)+'.pt'):
                 os.remove(os.path.join(directory, train_file))
-    torch.save(model, filename+'.pt')
+        os.rename(filename+'.v'+str(epoch)+'.pt', filename+'.pt')
 
 
 def adjust_learning_rate(model, optimizer, epoch):
-    """
+    """adjust learning rate
+
+    Arguments are
+    * optimizer:   optimizer object.
+    * epoch:       the current epoch number when the function is called.
+
     This method adjusts the learning rate of training.
     """
     learning_rate = 0.1
@@ -216,3 +268,26 @@ def adjust_learning_rate(model, optimizer, epoch):
 
     for param_group in optimizer.param_groups:
         param_group['lr'] = learning_rate
+
+
+def print_validation(args, batch, exit_points=None):
+    """print validation results
+
+    Arguments are
+    * batch:         validation batch results.
+    * exit_points:   the number of samples exiting from the specified exit blocks.
+
+    This method prints the results of validation.
+    """
+    # print the validation results of epoch
+    print('     Test avg time: {:.4f}msec; avg val_loss: {:.4f}; avg val_acc:{:.2f}%'
+          .format(np.mean(batch['time'])*100.,
+                  np.mean(batch['val_loss']),
+                  np.mean(batch['acc'])*100.))
+
+    # detail print for EENet based models
+    if exit_points is not None:
+        print('\tavg val_cost: {:.2f}%; exits: <'.format(np.mean(batch['cost'])*100.), end='')
+        for i in range(args.num_ee+1):
+            print('{:d},'.format(exit_points[i]), end='')
+        print('>')

@@ -1,7 +1,6 @@
 """
 Custom EENet model
 """
-import torch
 from torch import nn
 
 __all__ = ['CustomEENet', 'eenet8']
@@ -42,6 +41,9 @@ class CustomEENet(nn.Module):
         self.exit0_confidence = self.get_confidence(1)
         self.exit1_confidence = self.get_confidence(2)
         self.classifier = self.get_classifier(num_classes, 4)
+        self.complexity = [(546, 1490), (1844, 1490), (6982, 1490)]
+        if self.filter == 4:
+            self.complexity = [(1792, 5332), (6608, 5332), (25814, 5332)]
 
     def get_basic_block(self, expansion):
         """get basic block as nn.Sequential"""
@@ -100,15 +102,7 @@ class CustomEENet(nn.Module):
         if not self.training:
             return pred_2, 2, 1.0
 
-        # Calculate cumulative prediction and cost during training
-        cum_pred = [None, None, pred_2]
-        cum_cost = [None, None, torch.tensor(1.0)]
-        cum_pred[1] = conf_1 * pred_1 + (1-conf_1) * cum_pred[2]
-        cum_cost[1] = conf_1 * cost_1 + (1-conf_1) * cum_cost[2]
-        cum_pred[0] = conf_0 * pred_0 + (1-conf_0) * cum_pred[1]
-        cum_cost[0] = conf_0 * cost_0 + (1-conf_0) * cum_cost[1]
-
-        return cum_pred, cum_cost
+        return (pred_0, pred_1, pred_2), (conf_0, conf_1), (cost_0, cost_1)
 
 
 def eenet8(input_shape, num_classes, filters=2, **kwargs):

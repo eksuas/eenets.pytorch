@@ -21,31 +21,30 @@ def get_model_complexity_info(model, input_res, print_per_layer_stat=True, as_st
 
     return flops_count, params_count
 
-def flops_to_string(flops, units='GMac', precision=2):
+def flops_to_string(flops, units=None, precision=2):
     if units is None:
         if flops // 10**9 > 0:
             return str(round(flops / 10.**9, precision)) + ' GMac'
-        elif flops // 10**6 > 0:
+        if flops // 10**6 > 0:
             return str(round(flops / 10.**6, precision)) + ' MMac'
-        elif flops // 10**3 > 0:
+        if flops // 10**3 > 0:
             return str(round(flops / 10.**3, precision)) + ' KMac'
-        else:
-            return str(flops) + ' Mac'
+        return str(flops) + ' Mac'
     else:
         if units == 'GMac':
             return str(round(flops / 10.**9, precision)) + ' ' + units
-        elif units == 'MMac':
+        if units == 'MMac':
             return str(round(flops / 10.**6, precision)) + ' ' + units
-        elif units == 'KMac':
+        if units == 'KMac':
             return str(round(flops / 10.**3, precision)) + ' ' + units
-        else:
-            return str(flops) + ' Mac'
+        return str(flops) + ' Mac'
 
 def params_to_string(params_num):
-    if params_num // 10 ** 6 > 0:
-        return str(round(params_num / 10 ** 6, 2)) + ' M'
-    elif params_num // 10 ** 3:
-        return str(round(params_num / 10 ** 3, 2)) + ' k'
+    if params_num // 10**6 > 0:
+        return str(round(params_num / 10.**6, 2)) + ' M'
+    if params_num // 10**3 > 0:
+        return str(round(params_num / 10.**3, 2)) + ' k'
+    return str(params_num)
 
 def print_model_with_flops(model, units='GMac', precision=3):
     total_flops = model.compute_average_flops_cost()

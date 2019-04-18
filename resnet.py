@@ -3,7 +3,7 @@ ResNet models
 """
 from torch import  nn
 from torch.utils import model_zoo
-
+from flops_counter import get_model_complexity_info
 
 __all__ = ['ResNet', 'ResNet6n2',
            'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152',
@@ -128,6 +128,7 @@ class ResNet(nn.Module):
     def __init__(self, block, layers, num_classes, input_shape, zero_init_residual=False, **kwargs):
         super(ResNet, self).__init__()
         channel, _, _ = input_shape
+        self.input_shape = input_shape
         self.inplanes = 64
         self.conv1 = nn.Conv2d(channel, 64, kernel_size=7, stride=2, padding=3,
                                bias=False)
@@ -175,6 +176,12 @@ class ResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
+    def get_complexity(self):
+        """get model complexity in terms of FLOPs and the number of parameters"""
+        flops, params = get_model_complexity_info(self, self.input_shape,\
+                        print_per_layer_stat=False, as_strings=False)
+        self.complexity = [(flops, params)]
+
     def forward(self, x):
         x = self.conv1(x)
         x = self.bn1(x)
@@ -212,6 +219,7 @@ class ResNet6n2(nn.Module):
         super(ResNet6n2, self).__init__()
         channel, _, _ = input_shape
         layer_blocks = (layers-2) // 6
+        self.input_shape = input_shape
         self.inplanes = 16
         self.conv1 = nn.Conv2d(channel, 16, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(16)
@@ -258,6 +266,12 @@ class ResNet6n2(nn.Module):
 
         return nn.Sequential(*layers)
 
+    def get_complexity(self):
+        """get model complexity in terms of FLOPs and the number of parameters"""
+        flops, params = get_model_complexity_info(self, self.input_shape,\
+                        print_per_layer_stat=False, as_strings=False)
+        self.complexity = [(flops, params)]
+
     def forward(self, x):
         x = self.conv1(x)
         x = self.bn1(x)
@@ -281,6 +295,7 @@ def resnet18(pretrained=False, **kwargs):
     * pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = ResNet(BasicBlock, [2, 2, 2, 2], **kwargs)
+    model.get_complexity()
     if pretrained:
         model.load_state_dict(model_zoo.load_url(model_urls['resnet18']))
     return model
@@ -293,6 +308,7 @@ def resnet34(pretrained=False, **kwargs):
     * pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = ResNet(BasicBlock, [3, 4, 6, 3], **kwargs)
+    model.get_complexity()
     if pretrained:
         model.load_state_dict(model_zoo.load_url(model_urls['resnet34']))
     return model
@@ -305,6 +321,7 @@ def resnet50(pretrained=False, **kwargs):
     * pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = ResNet(Bottleneck, [3, 4, 6, 3], **kwargs)
+    model.get_complexity()
     if pretrained:
         model.load_state_dict(model_zoo.load_url(model_urls['resnet50']))
     return model
@@ -317,6 +334,7 @@ def resnet101(pretrained=False, **kwargs):
     * pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = ResNet(Bottleneck, [3, 4, 23, 3], **kwargs)
+    model.get_complexity()
     if pretrained:
         model.load_state_dict(model_zoo.load_url(model_urls['resnet101']))
     return model
@@ -329,6 +347,7 @@ def resnet152(pretrained=False, **kwargs):
     * pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = ResNet(Bottleneck, [3, 8, 36, 3], **kwargs)
+    model.get_complexity()
     if pretrained:
         model.load_state_dict(model_zoo.load_url(model_urls['resnet152']))
     return model
@@ -337,28 +356,33 @@ def resnet152(pretrained=False, **kwargs):
 def resnet20(**kwargs):
     """Constructs a ResNet-20 model."""
     model = ResNet6n2(BasicBlock, 20, **kwargs)
+    model.get_complexity()
     return model
 
 
 def resnet32(**kwargs):
     """Constructs a ResNet-32 model."""
     model = ResNet6n2(BasicBlock, 32, **kwargs)
+    model.get_complexity()
     return model
 
 
 def resnet44(**kwargs):
     """Constructs a ResNet-44 model."""
     model = ResNet6n2(BasicBlock, 44, **kwargs)
+    model.get_complexity()
     return model
 
 
 def resnet56(**kwargs):
     """Constructs a ResNet-56 model."""
     model = ResNet6n2(BasicBlock, 56, **kwargs)
+    model.get_complexity()
     return model
 
 
 def resnet110(**kwargs):
     """Constructs a ResNet-110 model."""
     model = ResNet6n2(BasicBlock, 110, **kwargs)
+    model.get_complexity()
     return model

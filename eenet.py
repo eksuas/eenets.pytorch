@@ -1,7 +1,6 @@
 """
 EENet models
 """
-import torch
 from torch import nn
 from flops_counter import get_model_complexity_info
 from resnet import ResNet, ResNet6n2
@@ -106,15 +105,15 @@ class ExitBlock(nn.Module):
 
     This allows the model to terminate early when it is confident for classification.
     """
-    def __init__(self, inplanes, num_classes, input_shape, type):
+    def __init__(self, inplanes, num_classes, input_shape, exit_type):
         super(ExitBlock, self).__init__()
         _, width, height = input_shape
-        self.expansion = width * height if type == 'plain' else 1
+        self.expansion = width * height if exit_type == 'plain' else 1
 
         self.layers = []
-        if type == 'bnpool':
+        if exit_type == 'bnpool':
             self.layers.append(nn.BatchNorm2d(inplanes))
-        if type != 'plain':
+        if exit_type != 'plain':
             self.layers.append(nn.AdaptiveAvgPool2d(1))
 
         self.confidence = nn.Sequential(
@@ -326,15 +325,7 @@ class EENet(nn.Module):
             return pred, len(self.exits), 1.0
         preds.append(pred)
 
-        # Calculate cumulative prediction and cost during training
-        cum_pred = [None] * self.num_ee + [preds[self.num_ee]]
-        cum_cost = [None] * self.num_ee + [torch.tensor(1.0)]
-        for i in range(self.num_ee-1, -1, -1):
-            cum_pred[i] = confs[i] * preds[i] + (1-confs[i]) * cum_pred[i+1]
-            cum_cost[i] = confs[i] * self.cost[i] + (1-confs[i]) * cum_cost[i+1]
-
-        return cum_pred, cum_cost
-
+        return preds, confs, self.cost
 
 def eenet18(**kwargs):
     """EENet-18 model"""
