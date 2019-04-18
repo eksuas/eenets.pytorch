@@ -41,9 +41,9 @@ class CustomEENet(nn.Module):
         self.exit0_confidence = self.get_confidence(1)
         self.exit1_confidence = self.get_confidence(2)
         self.classifier = self.get_classifier(num_classes, 4)
-        self.complexity = [(546, 1490), (1844, 1490), (6982, 1490)]
+        self.complexity = [(546, 137), (1844, 407), (6982, 1490)]
         if self.filter == 4:
-            self.complexity = [(1792, 5332), (6608, 5332), (25814, 5332)]
+            self.complexity = [(1792, 407), (6608, 1395), (25814, 5332)]
 
     def get_basic_block(self, expansion):
         """get basic block as nn.Sequential"""
