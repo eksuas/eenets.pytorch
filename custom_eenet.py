@@ -110,5 +110,5 @@ def eenet8(input_shape, num_classes, filters=2, **kwargs):
 
     This creates an instance of Custom EENet-8 with given starting filter number.
     """
-    print("Note that EENet-8 has constant two early-exit blocks regardless of what num_ee is!")
+    print('Note that EENet-8 has constant two early-exit blocks regardless of what num_ee is!')
     return CustomEENet(input_shape, num_classes, filters)

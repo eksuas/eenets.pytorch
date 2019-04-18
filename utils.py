@@ -123,61 +123,61 @@ def plot_history(args, history):
     directory = '../results/'+args.dataset+'/'+args.model
     if args.num_ee > 0:
         directory += '/ee'+str(args.num_ee)+'_'+args.distribution
-
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    epochs = range(args.log_interval, args.epochs+1, args.log_interval)
     data = pd.DataFrame(history)
 
-    hist = data[['train_loss', 'val_loss']]
     title = 'loss of '+args.model+' on '+args.dataset
-    xtick = epochs
+    xtick = data['epoch']
+    yticks = data[['train_loss', 'val_loss']]
     labels = ('epochs', 'loss')
     filename = directory+'/loss_figure.png'
-    plot_chart(hist, title, xtick, labels, filename)
+    plot_chart(title, xtick, yticks, labels, filename)
 
-    hist = data[['acc', 'cost']]
     title = 'val. accuracy and cost rate of '+args.model+' on '+args.dataset
-    xtick = epochs
+    xtick = data['epoch']
+    yticks = data[['acc', 'cost']]
     labels = ('epochs', 'percent')
     filename = directory+'/acc_cost_figure.png'
-    plot_chart(hist, title, xtick, labels, filename)
+    plot_chart(title, xtick, yticks, labels, filename)
 
-    if args.model != 'eenet8':
-        hist = data[['acc']]
-        title = 'val. accuracy vs flops of '+args.model+' on '+args.dataset
-        xtick = [np.mean(x) for x in data['flop']]
-        labels = ('flops', 'accuracy')
-        filename = directory+'/acc_vs_flop_figure.png'
-        plot_chart(hist, title, xtick, labels, filename)
+    title = 'val. accuracy vs flops of '+args.model+' on '+args.dataset
+    xtick = data['flop']
+    yticks = data[['acc']]
+    labels = ('flops', 'accuracy')
+    filename = directory+'/acc_vs_flop_figure.png'
+    plot_chart(title, xtick, yticks, labels, filename)
 
 
-def plot_chart(hist, title, xtick, labels, filename):
+def plot_chart(title, xtick, yticks, labels, filename):
     """draw chart
 
     Arguments are
-    * hist:      history to be plotted.
     * title:     title of the chart.
     * xtick:     array that includes the xtick values.
+    * yticks:    array that includes the ytick values.
     * labels:    labels of x and y axises.
     * filename:  filename of the chart.
 
     This plots the history in a chart.
     """
     plt.title(title)
+    xerr = [stats.sem(x) if isinstance(x, list) else 0 for x in xtick]
+    xtick = [np.mean(x) if isinstance(x, list) else x for x in xtick]
     plt.xticks(xtick)
+
     legend = []
-    for key in hist.keys():
+    for key, ytick in yticks.items():
         legend.append(key)
-        ytick = [np.mean(y) for y in hist[key]]
-        error = [stats.sem(y) for y in hist[key]]
-        plt.errorbar(xtick, ytick, yerr=error, fmt='-o')
-        #plt.plot(xtick, ytick)
+        yerr = [stats.sem(y) for y in ytick]
+        ytick = [np.mean(y) for y in ytick]
+        plt.errorbar(xtick, ytick, xerr=xerr, yerr=yerr, capsize=3)
+
     xlabel, ylabel = labels
     plt.ylabel(ylabel)
     plt.xlabel(xlabel)
-    plt.legend(legend, loc="best")
+    plt.legend(legend, loc='best')
     plt.savefig(filename)
     plt.clf()
     print('The figure is plotted under \'{}\''.format(filename))
@@ -219,7 +219,7 @@ def display_examples(args, model, dataset):
                 for example in range(len(images[idx][class_id])):
                     axarr[class_id, example].imshow(
                         dataset[images[idx][class_id][example]][0].view(args.input_shape[1:]))
-            fig.savefig(directory+"exitblock"+str(idx)+".png")
+            fig.savefig(directory+'exitblock'+str(idx)+'.png')
 
 
 def save_model(args, model, epoch, best=False):

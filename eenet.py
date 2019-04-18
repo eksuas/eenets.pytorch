@@ -217,7 +217,7 @@ class EENet(nn.Module):
             stride = 2
 
         assert len(self.exits) == num_ee, \
-            "The desired number of exit blocks is too much for the model capacity."
+            'The desired number of exit blocks is too much for the model capacity.'
 
         planes = 64 if is_6n2model else 512
         self.layers.append(nn.AdaptiveAvgPool2d(1))
@@ -268,11 +268,11 @@ class EENet(nn.Module):
         flop_margin = 1.0 / (self.num_ee+1)
         self.threshold = []
         for i in range(self.num_ee):
-            if distribution == "pareto":
+            if distribution == 'pareto':
                 self.threshold.append(total_flops * (1 - (0.8**(i+1))))
-            elif distribution == "fine":
+            elif distribution == 'fine':
                 self.threshold.append(total_flops * (1 - (0.95**(i+1))))
-            elif distribution == "linear":
+            elif distribution == 'linear':
                 self.threshold.append(total_flops * flop_margin * (i+1))
             else:
                 self.threshold.append(total_flops * (gold_rate**(i - self.num_ee)))

@@ -28,7 +28,7 @@ def main():
     best = -1
     history = []
     for epoch in range(1, args.epochs + 1):
-        print('{:3d}: '.format(epoch), end="")
+        print('{:3d}: '.format(epoch), end='')
 
         # use adaptive learning rate
         if args.adjust_lr:
@@ -39,6 +39,7 @@ def main():
         if epoch % args.log_interval == 0:
             result = validate(args, model, test_loader)
             result['train_loss'] = train_loss
+            result['epoch'] = epoch
             history.append(result)
             if best == -1 or np.mean(result['val_loss']) < np.mean(history[best]['val_loss']):
                 best = epoch // args.log_interval - 1
