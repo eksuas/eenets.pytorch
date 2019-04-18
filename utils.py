@@ -6,6 +6,7 @@ import torch
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.ticker as tick
 from scipy import stats
 from torchvision import datasets, transforms
 from custom_eenet import CustomEENet
@@ -162,10 +163,19 @@ def plot_chart(title, xtick, yticks, labels, filename):
 
     This plots the history in a chart.
     """
-    plt.title(title)
+    _, axis = plt.subplots()
+    axis.xaxis.set_major_formatter(tick.FuncFormatter(x_fmt))
     xerr = [stats.sem(x) if isinstance(x, list) else 0 for x in xtick]
     xtick = [np.mean(x) if isinstance(x, list) else x for x in xtick]
-    plt.xticks(xtick)
+
+    xlabel, ylabel = labels
+    min_x = np.mean(xtick)
+    if min_x // 10**9 > 0:
+        xlabel += ' (GMac)'
+    elif min_x // 10**6 > 0:
+        xlabel += ' (MMac)'
+    elif min_x // 10**3 > 0:
+        xlabel += ' (KMac)'
 
     legend = []
     for key, ytick in yticks.items():
@@ -174,9 +184,9 @@ def plot_chart(title, xtick, yticks, labels, filename):
         ytick = [np.mean(y) for y in ytick]
         plt.errorbar(xtick, ytick, xerr=xerr, yerr=yerr, capsize=3)
 
-    xlabel, ylabel = labels
-    plt.ylabel(ylabel)
+    plt.title(title)
     plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
     plt.legend(legend, loc='best')
     plt.savefig(filename)
     plt.clf()
@@ -291,3 +301,14 @@ def print_validation(args, batch, exit_points=None):
         for i in range(args.num_ee+1):
             print('{:d},'.format(exit_points[i]), end='')
         print('>')
+
+
+def x_fmt(x_value, _):
+    """x axis formatter"""
+    if x_value // 10**9 > 0:
+        return '{:.1f}'.format(x_value / 10.**9)
+    if x_value // 10**6 > 0:
+        return '{:.1f}'.format(x_value / 10.**6)
+    if x_value // 10**3 > 0:
+        return '{:.1f}'.format(x_value / 10.**3)
+    return '{}'.format(x_value)
