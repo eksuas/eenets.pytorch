@@ -1,6 +1,8 @@
 """
 initializer methods are defined in this code.
 """
+import os
+import csv
 import argparse
 import inspect
 import six
@@ -78,6 +80,11 @@ def initializer():
                                           ],
                                           help='model to be evaluated (default: eenet20)')
     parser.add_argument('--device',       help=argparse.SUPPRESS)
+    parser.add_argument('--start-epoch',  help=argparse.SUPPRESS)
+    parser.add_argument('--recorder',     help=argparse.SUPPRESS)
+    parser.add_argument('--results-dir',  help=argparse.SUPPRESS)
+    parser.add_argument('--models-dir',   help=argparse.SUPPRESS)
+    parser.add_argument('--hist-file',    help=argparse.SUPPRESS)
     parser.add_argument('--num-classes',  help=argparse.SUPPRESS, default=10)
     parser.add_argument('--input-shape',  help=argparse.SUPPRESS, default=(3, 32, 32))
     #pylint: enable=C0326, C0330
@@ -127,6 +134,36 @@ def initializer():
     flops, params = model.complexity[-1]
     print('exit-block: flops={}, params={}, cost-rate={:.2f}'
           .format(flops_to_string(flops), params_to_string(params), flops/total_flops))
+
+    # create result folder
+    args.results_dir = '../results/'+args.dataset+'/'+args.model
+    if args.num_ee > 0:
+        args.results_dir += '/ee'+str(args.num_ee)+'_'+args.distribution
+    if not os.path.exists(args.results_dir):
+        os.makedirs(args.results_dir)
+
+    args.hist_file = open(args.results_dir+'/history.csv', 'a', newline='')
+    args.recorder = csv.writer(args.hist_file, delimiter=',')
+    if os.stat(args.results_dir+'/history.csv').st_size == 0:
+        args.recorder.writerow(['acc', 'acc_sem',
+                                'cost', 'cost_sem',
+                                'epoch',
+                                'flop', 'flop_sem',
+                                'time', 'time_sem',
+                                'train_loss', 'train_loss_sem',
+                                'val_loss', 'val_loss_sem'])
+
+    # create model folder
+    args.models_dir = '../models/'+args.dataset+'/'+args.model
+    if args.num_ee > 0:
+        args.models_dir += '/ee'+str(args.num_ee)+'_'+args.distribution
+    if not os.path.exists(args.models_dir):
+        os.makedirs(args.models_dir)
+
+    # continue to broken training
+    args.start_epoch = 1
+    while os.path.exists(args.models_dir+'/model'+'.v'+str(args.start_epoch)+'.pt'):
+        args.start_epoch += 1
 
     return model, optimizer, args
 

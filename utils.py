@@ -7,7 +7,6 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as tick
-from scipy import stats
 from torchvision import datasets, transforms
 from custom_eenet import CustomEENet
 from eenet import EENet
@@ -113,7 +112,7 @@ def create_val_img_folder():
             os.rename(os.path.join(img_dir, img), os.path.join(newpath, img))
 
 
-def plot_history(args, history):
+def plot_history(args):
     """plot figures
 
     Argument is
@@ -121,37 +120,35 @@ def plot_history(args, history):
 
     This plots the history in a chart.
     """
-    directory = '../results/'+args.dataset+'/'+args.model
-    if args.num_ee > 0:
-        directory += '/ee'+str(args.num_ee)+'_'+args.distribution
-    if not os.path.exists(directory):
-        os.makedirs(directory)
+    args.hist_file.close()
+    data = pd.read_csv(args.results_dir+'/history.csv')
+    data = data.drop_duplicates(subset='epoch', keep="last")
 
-    data = pd.DataFrame(history)
-
+    data = data.sort_values(by='epoch')
     title = 'loss of '+args.model+' on '+args.dataset
-    xtick = data['epoch']
-    yticks = data[['train_loss', 'val_loss']]
+    xticks = data[['epoch']]
+    yticks = data[['train_loss', 'train_loss_sem', 'val_loss', 'val_loss_sem']]
     labels = ('epochs', 'loss')
-    filename = directory+'/loss_figure.png'
-    plot_chart(title, xtick, yticks, labels, filename)
+    filename = args.results_dir+'/loss_figure.png'
+    plot_chart(title, xticks, yticks, labels, filename)
 
     title = 'val. accuracy and cost rate of '+args.model+' on '+args.dataset
-    xtick = data['epoch']
-    yticks = data[['acc', 'cost']]
+    xticks = data[['epoch']]
+    yticks = data[['acc', 'acc_sem', 'cost', 'cost_sem']]
     labels = ('epochs', 'percent')
-    filename = directory+'/acc_cost_figure.png'
-    plot_chart(title, xtick, yticks, labels, filename)
+    filename = args.results_dir+'/acc_cost_figure.png'
+    plot_chart(title, xticks, yticks, labels, filename)
 
+    data = data.sort_values(by='flop')
     title = 'val. accuracy vs flops of '+args.model+' on '+args.dataset
-    xtick = data['flop']
-    yticks = data[['acc']]
+    xticks = data[['flop', 'flop_sem']]
+    yticks = data[['acc', 'acc_sem']]
     labels = ('flops', 'accuracy')
-    filename = directory+'/acc_vs_flop_figure.png'
-    plot_chart(title, xtick, yticks, labels, filename)
+    filename = args.results_dir+'/acc_vs_flop_figure.png'
+    plot_chart(title, xticks, yticks, labels, filename)
 
 
-def plot_chart(title, xtick, yticks, labels, filename):
+def plot_chart(title, xticks, yticks, labels, filename):
     """draw chart
 
     Arguments are
@@ -165,8 +162,15 @@ def plot_chart(title, xtick, yticks, labels, filename):
     """
     _, axis = plt.subplots()
     axis.xaxis.set_major_formatter(tick.FuncFormatter(x_fmt))
-    xerr = [stats.sem(x) if isinstance(x, list) else 0 for x in xtick]
-    xtick = [np.mean(x) if isinstance(x, list) else x for x in xtick]
+
+    xerr = None
+    for key, value in xticks.items():
+        if key.endswith('_sem'):
+            xerr = value
+        else: xtick = value
+
+    if all(float(x).is_integer() for x in xtick):
+        axis.xaxis.set_major_locator(tick.MaxNLocator(integer=True))
 
     xlabel, ylabel = labels
     min_x = np.mean(xtick)
@@ -178,11 +182,12 @@ def plot_chart(title, xtick, yticks, labels, filename):
         xlabel += ' (KMac)'
 
     legend = []
-    for key, ytick in yticks.items():
-        legend.append(key)
-        yerr = [stats.sem(y) for y in ytick]
-        ytick = [np.mean(y) for y in ytick]
-        plt.errorbar(xtick, ytick, xerr=xerr, yerr=yerr, capsize=3)
+    for key, value in yticks.items():
+        if not key.endswith('_sem'):
+            legend.append(key)
+            ytick = value
+            yerr = yticks[key+'_sem']
+            plt.errorbar(xtick, ytick, xerr=xerr, yerr=yerr, capsize=3)
 
     plt.title(title)
     plt.xlabel(xlabel)
@@ -202,12 +207,7 @@ def display_examples(args, model, dataset):
 
     This method shows the correctly predicted sample of images from dataset.
     Produced table shows the early exit block which classifies that samples.
-
     """
-    directory = '../results/'
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-
     images = [[[] for j in range(10)] for i in range(args.num_ee+1)]
     model.eval()
     with torch.no_grad():
@@ -229,7 +229,7 @@ def display_examples(args, model, dataset):
                 for example in range(len(images[idx][class_id])):
                     axarr[class_id, example].imshow(
                         dataset[images[idx][class_id][example]][0].view(args.input_shape[1:]))
-            fig.savefig(directory+'exitblock'+str(idx)+'.png')
+            fig.savefig(args.results_dir+'/exitblock'+str(idx)+'.png')
 
 
 def save_model(args, model, epoch, best=False):
@@ -241,21 +241,14 @@ def save_model(args, model, epoch, best=False):
 
     This method saves the trained model in pt file.
     """
-    directory = '../models/'+args.dataset+'/'+args.model
-    if isinstance(model, (EENet, CustomEENet)):
-        directory += '/ee'+str(args.num_ee)+'_'+args.distribution
-
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-
-    filename = directory+'/model'
+    filename = args.models_dir+'/model'
     if best is False:
         torch.save(model, filename+'.v'+str(epoch)+'.pt')
     else:
-        train_files = os.listdir(directory)
+        train_files = os.listdir(args.models_dir)
         for train_file in train_files:
             if not train_file.endswith('.v'+str(epoch)+'.pt'):
-                os.remove(os.path.join(directory, train_file))
+                os.remove(os.path.join(args.models_dir, train_file))
         os.rename(filename+'.v'+str(epoch)+'.pt', filename+'.pt')
 
 
@@ -290,17 +283,23 @@ def print_validation(args, batch, exit_points=None):
     This method prints the results of validation.
     """
     # print the validation results of epoch
-    print('     Test avg time: {:.4f}msec; avg val_loss: {:.4f}; avg val_acc:{:.2f}%'
+    print('     Test avg time: {:.4f}msec; avg val_loss: {:.4f}; avg val_acc: {:.2f}%'
           .format(np.mean(batch['time'])*100.,
                   np.mean(batch['val_loss']),
-                  np.mean(batch['acc'])*100.))
+                  np.mean(batch['acc'])))
 
     # detail print for EENet based models
     if exit_points is not None:
-        print('\tavg val_cost: {:.2f}%; exits: <'.format(np.mean(batch['cost'])*100.), end='')
+        print('\tavg val_cost: {:.2f}%; exits: <'.format(np.mean(batch['cost'])), end='')
         for i in range(args.num_ee+1):
             print('{:d},'.format(exit_points[i]), end='')
         print('>')
+
+
+def save_history(args, record):
+    """save a record to the history file"""
+    args.recorder.writerow([str(record[key]) for key in sorted(record)])
+    args.hist_file.flush()
 
 
 def x_fmt(x_value, _):
@@ -311,4 +310,4 @@ def x_fmt(x_value, _):
         return '{:.1f}'.format(x_value / 10.**6)
     if x_value // 10**3 > 0:
         return '{:.1f}'.format(x_value / 10.**3)
-    return '{}'.format(x_value)
+    return str(x_value)

@@ -6,10 +6,11 @@ import time
 import numpy as np
 import torch
 import torch.nn.functional as F
-#from torch import nn
+from scipy import stats
 from utils import load_dataset
 from utils import adjust_learning_rate
 from utils import save_model
+from utils import save_history
 from utils import plot_history
 from utils import print_validation
 from init import initializer
@@ -24,43 +25,37 @@ def main():
     """
     model, optimizer, args = initializer()
     train_loader, test_loader = load_dataset(args)
-
-    best = -1
-    history = []
-    for epoch in range(1, args.epochs + 1):
+    best = {}
+    best_epoch = 0
+    for epoch in range(args.start_epoch, args.epochs + 1):
         print('{:3d}: '.format(epoch), end='')
+        result = {'epoch':epoch}
 
         # use adaptive learning rate
         if args.adjust_lr:
             adjust_learning_rate(model, optimizer, epoch)
-        train_loss = train(args, model, train_loader, optimizer)
+        result.update(train(args, model, train_loader, optimizer))
 
         # validate and keep history at each log interval
         if epoch % args.log_interval == 0:
-            result = validate(args, model, test_loader)
-            result['train_loss'] = train_loss
-            result['epoch'] = epoch
-            history.append(result)
-            if best == -1 or np.mean(result['val_loss']) < np.mean(history[best]['val_loss']):
-                best = epoch // args.log_interval - 1
+            result.update(validate(args, model, test_loader))
+            save_history(args, result)
+            if not best or result['val_loss'] < best['val_loss']:
+                best = result
+                best_epoch = epoch
 
         # save model parameters
         if args.save_model:
             save_model(args, model, epoch)
 
     # print the best validation result
-    print('\nThe best avg val_loss: {:.4f}, avg val_cost:{:.2f}, avg val_acc:{:.2f}%\n'
-          .format(np.mean(history[best]['val_loss']),
-                  np.mean(history[best]['cost'])*100.,
-                  np.mean(history[best]['acc'])*100.))
+    print('\nThe best avg val_loss: {:.4f}, avg val_cost: {:.2f}%, avg val_acc: {:.2f}%\n'
+          .format(best['val_loss'], best['cost'], best['acc']))
 
     # save the model giving the best validation results as a final model
     if args.save_model:
-        best_epoch = (best + 1)*args.log_interval
         save_model(args, model, best_epoch, True)
-
-    plot_history(args, history)
-    #display_examples(args, model, trainset)
+    plot_history(args)
 
 
 def train(args, model, train_loader, optimizer):
@@ -97,7 +92,6 @@ def train(args, model, train_loader, optimizer):
         # training settings for other models
         else:
             pred = model(data)
-            #criterion = nn.CrossEntropyLoss()
             loss = F.cross_entropy(pred, target)
 
         losses.append(float(loss))
@@ -105,8 +99,11 @@ def train(args, model, train_loader, optimizer):
         optimizer.step()
 
     # print the training results of epoch
-    print('Train avg loss: {:.4f}'.format(np.mean(losses)))
-    return losses
+    result = {'train_loss': round(np.mean(losses), 4),
+              'train_loss_sem': round(stats.sem(losses), 2)}
+
+    print('Train avg loss: {:.4f}'.format(result['train_loss']))
+    return result
 
 
 def validate(args, model, val_loader):
@@ -142,7 +139,6 @@ def validate(args, model, val_loader):
             else:
                 pred = model(data)
                 elapsed_time = time.process_time()  - start
-                #criterion = nn.CrossEntropyLoss()
                 loss = F.cross_entropy(pred, target)
                 flop, cost = model.complexity[-1][0], 1.0
                 exit_points = None
@@ -150,14 +146,19 @@ def validate(args, model, val_loader):
             # get the index of the max log-probability
             pred = pred.max(1, keepdim=True)[1]
             acc = pred.eq(target.view_as(pred)).sum().item()
-            batch['acc'].append(acc)
+            batch['acc'].append(acc*100.)
             batch['time'].append(elapsed_time)
-            batch['cost'].append(cost)
+            batch['cost'].append(cost*100.)
             batch['flop'].append(flop)
             batch['val_loss'].append(float(loss))
 
     print_validation(args, batch, exit_points)
-    return batch
+
+    result = {}
+    for key, value in batch.items():
+        result[key] = round(np.mean(value), 4)
+        result[key+'_sem'] = round(stats.sem(value), 2)
+    return result
 
 
 if __name__ == '__main__':
