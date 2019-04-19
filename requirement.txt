@@ -1,0 +1,9 @@
+# Library dependencies for the python code.  You need to install these with
+# `pip install -r requirements.txt` before you can run this.
+# PyTorch is required to run this code. Install from:
+# https://pytorch.org/get-started/locally/
+six
+scipy
+pandas
+numpy
+matplotlib
