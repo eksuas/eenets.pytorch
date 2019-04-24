@@ -32,8 +32,8 @@ The main.py includes command line arguments, to see them:
 ```
 $ python main.py --help
 usage: main.py [-h] [--batch-size N] [--test-batch N] [--epochs N] [--lr N]
-               [--adjust-lr] [--momentum N] [--weight-decay N] [--no-cuda]
-               [--seed N] [--log-interval N] [--save-model] [--load-model S]
+               [--adaptive-lr] [--momentum N] [--weight-decay N] [--no-cuda]
+               [--seed N] [--log-interval N] [--no-save-model] [--load-model S]
                [--filters N] [--lambda-coef N] [--num-ee N]
                [--dataset {mnist,cifar10,svhn,imagenet,tiny-imagenet}]
                [--optimizer {SGD,Adam}]
@@ -51,14 +51,14 @@ optional arguments:
   --test-batch N        input batch size for testing (default: 1)
   --epochs N            number of epochs to train (default: 150)
   --lr N                learning rate (default: 0.001)
-  --adjust-lr           adjust the learning rate
+  --adaptive-lr         adjust the learning rate
   --momentum N          SGD momentum (default: 0.9)
   --weight-decay N      weight decay for optimizers (default: 0.0001)
   --no-cuda             disables CUDA training
   --seed N              random seed (default: 1)
   --log-interval N      how many epochs to wait before logging training status
                         (default: 1)
-  --save-model          save current model
+  --no-save-model       do not save the current model
   --load-model S        the path for loading and evaluating model
   --filters N           initial filters of custom eenet-8 (default: 2)
   --lambda-coef N       lambda to arrange the balance between accuracy and

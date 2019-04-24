@@ -252,8 +252,8 @@ def save_model(args, model, epoch, best=False):
         os.rename(filename+'.v'+str(epoch)+'.pt', filename+'.pt')
 
 
-def adjust_learning_rate(model, optimizer, epoch):
-    """adjust learning rate
+def adaptive_learning_rate(model, optimizer, epoch):
+    """adaptive learning rate
 
     Arguments are
     * optimizer:   optimizer object.

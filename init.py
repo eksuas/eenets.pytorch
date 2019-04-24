@@ -35,7 +35,7 @@ def initializer():
                                           help='number of epochs to train (default: 150)')
     parser.add_argument('--lr',           type=float, default=0.001, metavar='N',
                                           help='learning rate (default: 0.001)')
-    parser.add_argument('--adjust-lr',    action='store_true', default=False,
+    parser.add_argument('--adaptive-lr',  action='store_true', default=False,
                                           help='adjust the learning rate')
     parser.add_argument('--momentum',     type=float, default=0.9, metavar='N',
                                           help='SGD momentum (default: 0.9)')
@@ -48,8 +48,8 @@ def initializer():
     parser.add_argument('--log-interval', type=int,   default=1, metavar='N',
                                           help='how many epochs to wait before logging training '+\
                                            'status (default: 1)')
-    parser.add_argument('--save-model',   action='store_true', default=True,
-                                          help='save current model')
+    parser.add_argument('--no-save-model',action='store_true', default=False,
+                                          help='do not save the current model')
     parser.add_argument('--load-model',   type=str,   default=None, metavar='S',
                                           help='the path for loading and evaluating model')
     parser.add_argument('--filters',      type=int,   default=2, metavar='N',

@@ -8,7 +8,7 @@ import torch
 import torch.nn.functional as F
 from scipy import stats
 from utils import load_dataset
-from utils import adjust_learning_rate
+from utils import adaptive_learning_rate
 from utils import save_model
 from utils import save_history
 from utils import plot_history
@@ -32,8 +32,8 @@ def main():
         result = {'epoch':epoch}
 
         # use adaptive learning rate
-        if args.adjust_lr:
-            adjust_learning_rate(model, optimizer, epoch)
+        if args.adaptive_lr:
+            adaptive_learning_rate(model, optimizer, epoch)
         result.update(train(args, model, train_loader, optimizer))
 
         # validate and keep history at each log interval
@@ -45,7 +45,7 @@ def main():
                 best_epoch = epoch
 
         # save model parameters
-        if args.save_model:
+        if not args.no_save_model:
             save_model(args, model, epoch)
 
     # print the best validation result
@@ -53,7 +53,7 @@ def main():
           .format(best['val_loss'], best['cost'], best['acc']))
 
     # save the model giving the best validation results as a final model
-    if args.save_model:
+    if not args.no_save_model:
         save_model(args, model, best_epoch, True)
     plot_history(args)
 
