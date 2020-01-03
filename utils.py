@@ -2,6 +2,7 @@
 utilities are defined in this code.
 """
 import os
+import csv
 import torch
 import pandas as pd
 import numpy as np
@@ -120,7 +121,6 @@ def plot_history(args):
 
     This plots the history in a chart.
     """
-    args.hist_file.close()
     data = pd.read_csv(args.results_dir+'/history.csv')
     data = data.drop_duplicates(subset='epoch', keep="last")
 
@@ -252,7 +252,13 @@ def save_model(args, model, epoch, best=False):
         os.rename(filename+'.v'+str(epoch)+'.pt', filename+'.pt')
 
 
-def adaptive_learning_rate(model, optimizer, epoch):
+def get_active_exit(args, epoch):
+    quantize = min(args.num_ee, ((epoch-1) // 7))
+    sequential = (epoch-1) % (args.num_ee+1)
+    return args.num_ee - sequential
+
+
+def adaptive_learning_rate(args, optimizer, epoch):
     """adaptive learning rate
 
     Arguments are
@@ -261,14 +267,25 @@ def adaptive_learning_rate(model, optimizer, epoch):
 
     This method adjusts the learning rate of training.
     """
-    learning_rate = 0.1
-    if epoch > 150:
-        learning_rate = 0.01
-    if epoch > 250:
-        learning_rate = 0.001
-    if isinstance(model, (EENet, CustomEENet)):
-        learning_rate *= 0.01
+    # Default SGD: lr=? momentum=0, dampening=0, weight_decay=0, nesterov=False
+    if args.optimizer == "SGD":
+        # Assummed batch-size is 128. Converge until 165 epochs
+        if args.dataset == "cifar10":
+            learning_rate = 0.1
+            #if args.model[-3:] == "110" and epoch <= 2:
+            if epoch <= 1:
+                learning_rate = 0.01
+            elif epoch > 122:
+                learning_rate = 0.001
+            elif epoch > 81:
+                learning_rate = 0.1
 
+        # Assumed batch-size is 256. Converge until 150-160 epochs
+        elif args.dataset == "imagenet":
+            learning_rate = 0.05 * 0.1**((epoch-1) // 30 + 1)
+
+    # Default Adam: lr=0.001 betas=(0.9, 0.999), eps=1e-08, weight_decay=0, amsgrad=False
+    # elif args.optimizer == "Adam":
     for param_group in optimizer.param_groups:
         param_group['lr'] = learning_rate
 
@@ -300,6 +317,23 @@ def save_history(args, record):
     """save a record to the history file"""
     args.recorder.writerow([str(record[key]) for key in sorted(record)])
     args.hist_file.flush()
+
+def close_history(args):
+    """print the best record in the history file"""
+    args.hist_file.close()
+    args.hist_file = open(args.results_dir+'/history.csv', 'r', newline='')
+    reader = csv.DictReader(args.hist_file)
+    best_epoch = 0
+    best = {}
+    for epoch, record in enumerate(reader):
+        if not best or record['val_loss'] < best['val_loss']:
+            best = record
+            best_epoch = epoch+1
+
+    print('\nThe best avg val_loss: {}, avg val_cost: {}%, avg val_acc: {}%\n'
+           .format(best['val_loss'], best['cost'], best['acc']))
+
+    return best_epoch
 
 
 def x_fmt(x_value, _):
