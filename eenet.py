@@ -1,4 +1,5 @@
 """
+Edanur Demir
 EENet models
 """
 from torch import nn
@@ -155,7 +156,8 @@ class EENet(nn.Module):
         The nn.Module.
     """
     def __init__(self, is_6n2model, block, total_layers, num_ee, distribution, num_classes,
-                 input_shape, exit_type, repetitions=None, zero_init_residual=False, **kwargs):
+                 input_shape, exit_type, loss_func, repetitions=None, zero_init_residual=False,
+                 **kwargs):
         super(EENet, self).__init__()
         if is_6n2model:
             self.inplanes = 16
@@ -172,8 +174,15 @@ class EENet(nn.Module):
         self.layers = nn.ModuleList()
         self.stage_id = 0
         self.num_ee = num_ee
+        self.total_layers = total_layers
+        self.exit_type = exit_type
+        self.distribution = distribution
         self.num_classes = num_classes
         self.input_shape = input_shape
+        self.exit_threshold = 0.5
+
+        if loss_func == 'v3':
+            self.exit_threshold = 1./self.num_ee
 
         channel, _, _ = input_shape
         total_flops, total_params = self.get_complexity(counterpart_model)
@@ -221,7 +230,15 @@ class EENet(nn.Module):
 
         planes = 64 if is_6n2model else 512
         self.layers.append(nn.AdaptiveAvgPool2d(1))
-        self.fully_connected = nn.Linear(planes * block.expansion, num_classes)
+        #self.fully_connected = nn.Linear(planes * block.expansion, num_classes)
+        self.classifier = nn.Sequential(
+            nn.Linear(planes * block.expansion, num_classes),
+            nn.Softmax(dim=1),
+        )
+        self.confidence = nn.Sequential(
+            nn.Linear(planes * block.expansion, 1),
+            nn.Sigmoid(),
+        )
         self.stages.append(nn.Sequential(*self.layers))
         self.softmax = nn.Softmax(dim=1)
         self.complexity.append((total_flops, total_params))
@@ -306,26 +323,34 @@ class EENet(nn.Module):
                     nn.init.constant_(module.bn2.weight, 0)
 
 
+    def set_multiple_gpus(self):
+        for idx, stage in enumerate(self.stages):
+            self.stages[idx] = nn.DataParallel(stage)
+        for idx, exitblock in enumerate(self.exits):
+            self.exits[idx] = nn.DataParallel(exitblock)
+
+
     def forward(self, x):
         preds, confs = [], []
 
         for idx, exitblock in enumerate(self.exits):
             x = self.stages[idx](x)
             pred, conf = exitblock(x)
-            if not self.training and conf.item() > 0.5:
+            if not self.training and conf.item() > self.exit_threshold:
                 return pred, idx, self.cost[idx]
             preds.append(pred)
             confs.append(conf)
 
         x = self.stages[-1](x)
         x = x.view(x.size(0), -1)
-        x = self.fully_connected(x)
-        pred = self.softmax(x)
+        pred = self.classifier(x)
+        conf = self.confidence(x)
         if not self.training:
             return pred, len(self.exits), 1.0
         preds.append(pred)
-
+        confs.append(conf)
         return preds, confs, self.cost
+
 
 def eenet18(**kwargs):
     """EENet-18 model"""

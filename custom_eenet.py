@@ -1,4 +1,5 @@
 """
+Edanur Demir
 Custom EENet model
 """
 from torch import nn
