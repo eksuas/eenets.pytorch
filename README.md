@@ -1,5 +1,5 @@
 # EENets: Early Exit Convolutional Neural Networks
-This repository contains PyTorch implementation of EENets: Early Exit Convolutional Neural Network. ([the thesis](https://drive.google.com/file/d/1tnLPd2Jiqm3WdVYKYAMv6dF_XpjS9vfu/view) and [the slides](https://drive.google.com/open?id=1IJKm0XygD2yPA1jCSgNdAhApGWM76lFf))
+This repository contains PyTorch implementation of EENets: Early Exit Convolutional Neural Network. ([the thesis](https://drive.google.com/file/d/1sPdSzL36BB5gAUt3pyath2U-dIRf4Oji/view?usp=drive_link) and [the slides](https://drive.google.com/file/d/16fZHWsOeRNbUWCpVMwEnjrfNPTDFF3e9/view?usp=drive_link))
 
 ## Getting Started
 
